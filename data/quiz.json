@@ -1,0 +1,148 @@
+{
+  "config": {
+    "title": "SARK Technical Screening",
+    "description": "A short technical quiz for evaluating web fundamentals, product thinking, and engineering judgment.",
+    "duration": "18 min",
+    "passingScore": "70%",
+    "startsAt": "Open now",
+    "mode": "Single attempt",
+    "rules": [
+      "Answer every question before final submission.",
+      "You can move back and update responses before submitting.",
+      "Do not refresh the page during an active attempt."
+    ],
+    "highlights": [
+      {
+        "label": "Focus",
+        "value": "Web, APIs, workflow"
+      },
+      {
+        "label": "Format",
+        "value": "MCQ"
+      },
+      {
+        "label": "Review",
+        "value": "Allowed before submit"
+      }
+    ]
+  },
+  "questions": [
+    {
+      "id": "runtime",
+      "category": "Web Systems",
+      "difficulty": "Core",
+      "prompt": "Which browser task is most directly handled by JavaScript on the main thread?",
+      "description": "Pick the answer that reflects how interactive UI logic usually runs before worker offloading.",
+      "options": [
+        {
+          "id": "a",
+          "label": "DOM event handling"
+        },
+        {
+          "id": "b",
+          "label": "TLS certificate negotiation"
+        },
+        {
+          "id": "c",
+          "label": "GPU shader compilation"
+        },
+        {
+          "id": "d",
+          "label": "DNS recursive resolution"
+        }
+      ]
+    },
+    {
+      "id": "api-contract",
+      "category": "Product Engineering",
+      "difficulty": "Applied",
+      "prompt": "What makes an API response easiest for a frontend team to evolve safely?",
+      "description": "Think in terms of predictable shape, explicit semantics, and lower regression risk.",
+      "options": [
+        {
+          "id": "a",
+          "label": "A stable schema with clear nullable fields"
+        },
+        {
+          "id": "b",
+          "label": "Dynamic keys that mirror user-entered strings"
+        },
+        {
+          "id": "c",
+          "label": "One large HTML payload for every view"
+        }
+      ]
+    },
+    {
+      "id": "git-flow",
+      "category": "Team Workflow",
+      "difficulty": "Core",
+      "prompt": "Why do engineering teams separate frequently edited content from UI layout code?",
+      "description": "Think about maintainability, review speed, and reducing accidental UI regressions.",
+      "options": [
+        {
+          "id": "a",
+          "label": "It separates editable content from layout code"
+        },
+        {
+          "id": "b",
+          "label": "It removes the need for route files"
+        },
+        {
+          "id": "c",
+          "label": "It automatically creates database migrations"
+        },
+        {
+          "id": "d",
+          "label": "It guarantees SEO ranking"
+        }
+      ]
+    },
+    {
+      "id": "security",
+      "category": "Security Basics",
+      "difficulty": "Applied",
+      "prompt": "Which future backend step matters most before accepting public quiz submissions?",
+      "description": "Assume the admin flow arrives later and answer integrity becomes meaningful.",
+      "options": [
+        {
+          "id": "a",
+          "label": "Server-side validation and controlled persistence"
+        },
+        {
+          "id": "b",
+          "label": "Hiding answer values with CSS"
+        },
+        {
+          "id": "c",
+          "label": "Using a longer page title"
+        }
+      ]
+    },
+    {
+      "id": "design",
+      "category": "Interface Design",
+      "difficulty": "Challenge",
+      "prompt": "What visual choice best matches the SARK direction for technical credibility?",
+      "description": "The UI should feel sharp and deliberate, not noisy or theatrically animated.",
+      "options": [
+        {
+          "id": "a",
+          "label": "Strong hierarchy, restrained accents, dense information"
+        },
+        {
+          "id": "b",
+          "label": "Constant motion on every card"
+        },
+        {
+          "id": "c",
+          "label": "Five unrelated neon gradients at once"
+        },
+        {
+          "id": "d",
+          "label": "Large empty marketing blocks before the actual tool"
+        }
+      ]
+    }
+  ]
+}
