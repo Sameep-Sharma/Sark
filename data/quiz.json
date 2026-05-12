@@ -3,6 +3,7 @@
     "title": "SARK Technical Screening",
     "description": "A short technical quiz for evaluating web fundamentals, product thinking, and engineering judgment.",
     "duration": "18 min",
+    "durationSeconds": 1080,
     "passingScore": "70%",
     "startsAt": "Open now",
     "mode": "Single attempt",
@@ -25,6 +26,11 @@
         "value": "Allowed before submit"
       }
     ]
+  },
+  "resultInvite": {
+    "title": "Join the SARK quiz circle",
+    "description": "Scan the WhatsApp QR to join the group for updates, discussions, and next steps.",
+    "image": false
   },
   "questions": [
     {
@@ -50,7 +56,8 @@
           "id": "d",
           "label": "DNS recursive resolution"
         }
-      ]
+      ],
+      "answer": "a"
     },
     {
       "id": "api-contract",
@@ -71,7 +78,8 @@
           "id": "c",
           "label": "One large HTML payload for every view"
         }
-      ]
+      ],
+      "answer": "a"
     },
     {
       "id": "git-flow",
@@ -96,7 +104,8 @@
           "id": "d",
           "label": "It guarantees SEO ranking"
         }
-      ]
+      ],
+      "answer": "a"
     },
     {
       "id": "security",
@@ -117,7 +126,8 @@
           "id": "c",
           "label": "Using a longer page title"
         }
-      ]
+      ],
+      "answer": "a"
     },
     {
       "id": "design",
@@ -142,7 +152,8 @@
           "id": "d",
           "label": "Large empty marketing blocks before the actual tool"
         }
-      ]
+      ],
+      "answer": "a"
     }
   ]
 }

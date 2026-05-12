@@ -1,18 +1,25 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import type { CSSProperties } from "react";
 import Image from "next/image";
-import { ArrowLeft, ArrowRight, Check, Play } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { AlertTriangle, ArrowLeft, ArrowRight, Check, Clock3, Loader2, Play } from "lucide-react";
 
 import type { QuizPayload } from "@/lib/quiz/types";
 
 export function QuizExperience() {
+  const router = useRouter();
   const [quiz, setQuiz] = useState<QuizPayload | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [hasStarted, setHasStarted] = useState(false);
   const [activeIndex, setActiveIndex] = useState(0);
   const [answers, setAnswers] = useState<Record<string, string>>({});
+  const [startedAt, setStartedAt] = useState<number | null>(null);
+  const [remainingSeconds, setRemainingSeconds] = useState<number | null>(null);
+  const [showUnattendedWarning, setShowUnattendedWarning] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   useEffect(() => {
     let shouldUpdate = true;
@@ -51,6 +58,61 @@ export function QuizExperience() {
 
   const canGoBack = activeIndex > 0;
   const canGoNext = activeIndex < totalQuestions - 1;
+  const unansweredCount = quiz ? quiz.questions.filter((question) => !answers[question.id]).length : 0;
+
+  const submitQuiz = useCallback(async () => {
+    if (!quiz || isSubmitting) {
+      return;
+    }
+
+    setIsSubmitting(true);
+    setSubmitError(null);
+    setShowUnattendedWarning(false);
+
+    try {
+      const response = await fetch("/api/quiz", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ answers }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Quiz submission failed.");
+      }
+
+      router.push("/quiz/result");
+    } catch {
+      setSubmitError("Unable to submit right now. Please try again.");
+      setIsSubmitting(false);
+    }
+  }, [answers, isSubmitting, quiz, router]);
+
+  useEffect(() => {
+    if (!quiz || !hasStarted || !startedAt || isSubmitting) {
+      return;
+    }
+
+    const quizStartedAt = startedAt;
+
+    function updateRemainingTime() {
+      const duration = quiz?.config.durationSeconds ?? 0;
+      const elapsedSeconds = Math.floor((Date.now() - quizStartedAt) / 1000);
+      const nextRemainingSeconds = Math.max(0, duration - elapsedSeconds);
+
+      setRemainingSeconds(nextRemainingSeconds);
+
+      if (nextRemainingSeconds <= 0) {
+        void submitQuiz();
+      }
+    }
+
+    updateRemainingTime();
+    const interval = window.setInterval(updateRemainingTime, 1000);
+
+    return () => window.clearInterval(interval);
+  }, [hasStarted, isSubmitting, quiz, startedAt, submitQuiz]);
 
   function selectOption(optionId: string) {
     if (!activeQuestion) {
@@ -66,6 +128,8 @@ export function QuizExperience() {
   function startQuiz() {
     setHasStarted(true);
     setActiveIndex(0);
+    setStartedAt(Date.now());
+    setRemainingSeconds(quiz?.config.durationSeconds ?? null);
   }
 
   function goBack() {
@@ -74,6 +138,15 @@ export function QuizExperience() {
 
   function goNext() {
     setActiveIndex((current) => Math.min(totalQuestions - 1, current + 1));
+  }
+
+  function finishQuiz() {
+    if (unansweredCount > 0) {
+      setShowUnattendedWarning(true);
+      return;
+    }
+
+    void submitQuiz();
   }
 
   return (
@@ -91,12 +164,15 @@ export function QuizExperience() {
       </header>
 
       {quiz && hasStarted ? (
-        <VerticalProgress
-          activeIndex={activeIndex}
-          answers={answers}
-          questions={quiz.questions}
-          totalQuestions={totalQuestions}
-        />
+        <>
+          <QuizTimer remainingSeconds={remainingSeconds ?? quiz.config.durationSeconds} totalSeconds={quiz.config.durationSeconds} />
+          <VerticalProgress
+            activeIndex={activeIndex}
+            answers={answers}
+            questions={quiz.questions}
+            totalQuestions={totalQuestions}
+          />
+        </>
       ) : null}
 
       {!quiz ? (
@@ -192,17 +268,68 @@ export function QuizExperience() {
                 <ArrowLeft />
                 Back
               </button>
-              <button type="button" className="quiz-primary-button" onClick={goNext} disabled={!canGoNext}>
+              <button
+                type="button"
+                className="quiz-primary-button"
+                onClick={canGoNext ? goNext : finishQuiz}
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? <Loader2 className="quiz-spin" /> : null}
                 {canGoNext ? "Next" : "Finish"}
-                <ArrowRight />
+                {!isSubmitting ? <ArrowRight /> : null}
               </button>
             </div>
+
+            {submitError ? <p className="quiz-submit-error">{submitError}</p> : null}
           </div>
+
+          {showUnattendedWarning ? (
+            <div className="quiz-warning" role="alertdialog" aria-modal="true" aria-labelledby="quiz-warning-title">
+              <div className="quiz-warning__panel">
+                <span>
+                  <AlertTriangle />
+                </span>
+                <div>
+                  <p>{unansweredCount} unattended question{unansweredCount === 1 ? "" : "s"}</p>
+                  <h3 id="quiz-warning-title">Submit without answering everything?</h3>
+                </div>
+                <div className="quiz-warning__actions">
+                  <button type="button" className="quiz-secondary-button" onClick={() => setShowUnattendedWarning(false)}>
+                    Back
+                  </button>
+                  <button type="button" className="quiz-primary-button" onClick={() => void submitQuiz()} disabled={isSubmitting}>
+                    Submit anyway
+                  </button>
+                </div>
+              </div>
+            </div>
+          ) : null}
         </section>
       ) : (
         <QuizLoading message="Preparing question" />
       )}
     </main>
+  );
+}
+
+function QuizTimer({ remainingSeconds, totalSeconds }: { remainingSeconds: number; totalSeconds: number }) {
+  const minutes = Math.floor(remainingSeconds / 60);
+  const seconds = remainingSeconds % 60;
+  const progress = totalSeconds > 0 ? Math.max(0, Math.min(1, remainingSeconds / totalSeconds)) : 0;
+  const isUrgent = remainingSeconds <= 60;
+
+  return (
+    <div className={`quiz-timer ${isUrgent ? "is-urgent" : ""}`} style={{ "--timer-progress": progress } as CSSProperties}>
+      <span>
+        <Clock3 />
+      </span>
+      <div>
+        <p>Time left</p>
+        <strong>
+          {String(minutes).padStart(2, "0")}:{String(seconds).padStart(2, "0")}
+        </strong>
+      </div>
+    </div>
   );
 }
 
