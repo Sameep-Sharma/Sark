@@ -8,7 +8,12 @@ if (!uri) {
   throw new Error("MONGODB_URI is not configured.");
 }
 
-const options = {};
+const options = {
+  appName: "sark-quiz",
+  maxPoolSize: 5,
+  minPoolSize: 0,
+  serverSelectionTimeoutMS: 8000,
+};
 
 let client: MongoClient;
 let clientPromise: Promise<MongoClient>;

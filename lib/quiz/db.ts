@@ -44,27 +44,55 @@ type LegacyQuizData = Omit<QuizPayload, "id" | "questions" | "isActive"> & {
 export type Quiz = WithId<QuizDocument>;
 export type QuizSubmissionResult = WithId<QuizSubmissionDocument>;
 
+let quizIndexesPromise: Promise<void> | null = null;
+let submissionIndexesPromise: Promise<void> | null = null;
+let defaultQuizPromise: Promise<void> | null = null;
+
 export async function getQuizzesCollection(): Promise<Collection<QuizDocument>> {
   const db = await getQuizDb();
-  const collection = db.collection<QuizDocument>(QUIZZES_COLLECTION);
 
-  await collection.createIndex({ isActive: 1 });
-  await collection.createIndex({ name: 1 });
-
-  return collection;
+  return db.collection<QuizDocument>(QUIZZES_COLLECTION);
 }
 
 export async function getQuizSubmissionsCollection(): Promise<Collection<QuizSubmissionDocument>> {
   const db = await getQuizDb();
-  const collection = db.collection<QuizSubmissionDocument>(QUIZ_SUBMISSIONS_COLLECTION);
 
-  await collection.createIndex({ quizId: 1, score: -1, timetaken: 1 });
-  await collection.createIndex({ userId: 1, quizId: 1 }, { unique: true });
+  return db.collection<QuizSubmissionDocument>(QUIZ_SUBMISSIONS_COLLECTION);
+}
 
-  return collection;
+export async function ensureQuizIndexes() {
+  if (!quizIndexesPromise) {
+    quizIndexesPromise = getQuizzesCollection().then(async (collection) => {
+      await Promise.all([collection.createIndex({ isActive: 1 }), collection.createIndex({ name: 1 })]);
+    });
+  }
+
+  return quizIndexesPromise;
+}
+
+export async function ensureQuizSubmissionIndexes() {
+  if (!submissionIndexesPromise) {
+    submissionIndexesPromise = getQuizSubmissionsCollection().then(async (collection) => {
+      await Promise.all([
+        collection.createIndex({ quizId: 1, score: -1, timetaken: 1 }),
+        collection.createIndex({ userId: 1, quizId: 1 }, { unique: true }),
+      ]);
+    });
+  }
+
+  return submissionIndexesPromise;
 }
 
 export async function ensureDefaultQuiz() {
+  if (defaultQuizPromise) {
+    return defaultQuizPromise;
+  }
+
+  defaultQuizPromise = seedDefaultQuizIfNeeded();
+  return defaultQuizPromise;
+}
+
+async function seedDefaultQuizIfNeeded() {
   const quizzes = await getQuizzesCollection();
   const existingCount = await quizzes.estimatedDocumentCount();
 
@@ -93,6 +121,17 @@ export async function listQuizzes() {
   const quizzes = await getQuizzesCollection();
 
   return quizzes.find({}).sort({ updatedAt: -1 }).toArray();
+}
+
+export async function listQuizSummaries() {
+  await ensureDefaultQuiz();
+  const quizzes = await getQuizzesCollection();
+
+  return quizzes
+    .find({})
+    .project<Pick<Quiz, "_id" | "name" | "isActive">>({ _id: 1, name: 1, isActive: 1 })
+    .sort({ updatedAt: -1 })
+    .toArray();
 }
 
 export async function getActiveQuiz() {
@@ -149,7 +188,11 @@ export function toQuizPayload(quiz: Quiz): QuizPayload {
       totalQuestions: quiz.questions.length,
     },
     questions: quiz.questions.map(({ answer: _answer, ...question }) => question),
-    resultInvite: quiz.resultInvite,
+    resultInvite: {
+      title: quiz.resultInvite.title,
+      description: quiz.resultInvite.description,
+      image: false,
+    },
     isActive: quiz.isActive,
   };
 }

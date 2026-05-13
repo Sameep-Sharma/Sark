@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import { getQuizSession } from "@/lib/auth/session";
 import { findQuizUserById, getQuizUsersCollection } from "@/lib/auth/users";
 import { findQuizSubmission, validateQuizSubmission } from "@/lib/quiz/data";
-import { getActiveQuiz, getQuizSubmissionsCollection, hasQuizStarted, toQuizPayload } from "@/lib/quiz/db";
+import { ensureQuizSubmissionIndexes, getActiveQuiz, getQuizSubmissionsCollection, hasQuizStarted, toQuizPayload } from "@/lib/quiz/db";
 import type { QuizSubmission } from "@/lib/quiz/types";
 
 export async function GET() {
@@ -93,6 +93,7 @@ export async function POST(request: Request) {
     const elapsedSeconds = Math.max(0, Math.floor((Date.now() - startedAt) / 1000));
     const timetaken = Math.min(elapsedSeconds, quiz.config.durationSeconds);
     const users = await getQuizUsersCollection();
+    await ensureQuizSubmissionIndexes();
     const submissions = await getQuizSubmissionsCollection();
     const now = new Date();
 

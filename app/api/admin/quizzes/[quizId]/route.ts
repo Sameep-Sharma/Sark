@@ -2,7 +2,14 @@ import { NextResponse } from "next/server";
 import { ObjectId } from "mongodb";
 
 import { getAdminSession } from "@/lib/auth/admin-session";
-import { getQuizSubmissionsCollection, getQuizzesCollection, setActiveQuiz, validateQuizDocumentInput } from "@/lib/quiz/db";
+import {
+  ensureQuizIndexes,
+  ensureQuizSubmissionIndexes,
+  getQuizSubmissionsCollection,
+  getQuizzesCollection,
+  setActiveQuiz,
+  validateQuizDocumentInput,
+} from "@/lib/quiz/db";
 
 type RouteContext = {
   params: Promise<{ quizId: string }>;
@@ -39,6 +46,7 @@ export async function PATCH(request: Request, context: RouteContext) {
     return NextResponse.json({ ok: false, message: validation.message }, { status: 400 });
   }
 
+  await ensureQuizIndexes();
   const quizzes = await getQuizzesCollection();
   const now = new Date();
   const result = await quizzes.updateOne(
@@ -77,6 +85,7 @@ export async function DELETE(_request: Request, context: RouteContext) {
   }
 
   const quizObjectId = new ObjectId(quizId);
+  await Promise.all([ensureQuizIndexes(), ensureQuizSubmissionIndexes()]);
   const quizzes = await getQuizzesCollection();
   const submissions = await getQuizSubmissionsCollection();
   const result = await quizzes.deleteOne({ _id: quizObjectId });

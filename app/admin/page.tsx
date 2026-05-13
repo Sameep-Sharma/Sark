@@ -7,7 +7,7 @@ import { ClearLeaderboardButton } from "@/components/admin/ClearLeaderboardButto
 import { QuizPanel } from "@/components/admin/QuizPanel";
 import { getAdminSession } from "@/lib/auth/admin-session";
 import { getQuizUsersCollection } from "@/lib/auth/users";
-import { getQuizSubmissionsCollection, listQuizzes } from "@/lib/quiz/db";
+import { getQuizSubmissionsCollection, listQuizzes, listQuizSummaries } from "@/lib/quiz/db";
 
 export const metadata: Metadata = {
   title: "Admin",
@@ -49,50 +49,61 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
   const { panel, quizId } = await searchParams;
   const activePanel = panel === "quiz" ? "quiz" : "leaderboard";
   const hasSelectedQuizParam = Boolean(quizId);
-  const quizzes = await listQuizzes();
-  const selectedQuiz = quizzes.find((quiz) => quiz._id.toString() === quizId) ?? quizzes.find((quiz) => quiz.isActive) ?? quizzes[0];
-  const users = await getQuizUsersCollection();
-  const submissions = await getQuizSubmissionsCollection();
-  const selectedSubmissions = selectedQuiz
-    ? await submissions.find({ quizId: selectedQuiz._id }).sort({ score: -1, timetaken: 1 }).toArray()
-    : [];
-  const userIds = selectedSubmissions.map((submission) => submission.userId);
-  const leaderboardUsers = userIds.length > 0 ? await users.find({ _id: { $in: userIds } }).toArray() : [];
-  const usersById = new Map(leaderboardUsers.map((user) => [user._id.toString(), user]));
-  const leaderboard: LeaderboardUser[] = selectedSubmissions
-    .map((submission) => {
-      const user = usersById.get(submission.userId.toString());
+  const fullQuizzes = activePanel === "quiz" ? await listQuizzes() : [];
+  const quizSummaries = activePanel === "leaderboard" ? await listQuizSummaries() : fullQuizzes;
+  const selectedQuiz = quizSummaries.find((quiz) => quiz._id.toString() === quizId) ?? quizSummaries.find((quiz) => quiz.isActive) ?? quizSummaries[0];
+  let leaderboard: LeaderboardUser[] = [];
 
-      return user
-        ? {
-            name: user.name,
-            usn: user.usn,
-            email: user.email,
-            phone: user.phone,
-            quizName: submission.quizName,
-            score: submission.score,
-            timetaken: submission.timetaken,
+  if (activePanel === "leaderboard" && selectedQuiz) {
+    const submissions = await getQuizSubmissionsCollection();
+    const selectedSubmissions = await submissions.find({ quizId: selectedQuiz._id }).sort({ score: -1, timetaken: 1 }).toArray();
+    const userIds = selectedSubmissions.map((submission) => submission.userId);
+
+    if (userIds.length > 0) {
+      const users = await getQuizUsersCollection();
+      const leaderboardUsers = await users.find({ _id: { $in: userIds } }).toArray();
+      const usersById = new Map(leaderboardUsers.map((user) => [user._id.toString(), user]));
+
+      leaderboard = selectedSubmissions
+        .map((submission) => {
+          const user = usersById.get(submission.userId.toString());
+
+          return user
+            ? {
+                name: user.name,
+                usn: user.usn,
+                email: user.email,
+                phone: user.phone,
+                quizName: submission.quizName,
+                score: submission.score,
+                timetaken: submission.timetaken,
+              }
+            : null;
+        })
+        .filter((user): user is LeaderboardUser => user !== null)
+        .sort((left, right) => {
+          const scoreDifference = right.score - left.score;
+
+          if (scoreDifference !== 0) {
+            return scoreDifference;
           }
-        : null;
-    })
-    .filter((user): user is LeaderboardUser => user !== null)
-    .sort((left, right) => {
-    const scoreDifference = (right.score ?? -1) - (left.score ?? -1);
 
-    if (scoreDifference !== 0) {
-      return scoreDifference;
+          return left.timetaken - right.timetaken;
+        });
     }
+  }
 
-    return (left.timetaken ?? Number.POSITIVE_INFINITY) - (right.timetaken ?? Number.POSITIVE_INFINITY);
-  });
-  const serializedQuizzes = quizzes.map((quiz) => ({
-    _id: quiz._id.toString(),
-    name: quiz.name,
-    config: quiz.config,
-    questions: quiz.questions,
-    resultInvite: quiz.resultInvite,
-    isActive: quiz.isActive,
-  }));
+  const serializedQuizzes =
+    activePanel === "quiz"
+      ? fullQuizzes.map((quiz) => ({
+          _id: quiz._id.toString(),
+          name: quiz.name,
+          config: quiz.config,
+          questions: quiz.questions,
+          resultInvite: quiz.resultInvite,
+          isActive: quiz.isActive,
+        }))
+      : [];
 
   const topScore = leaderboard[0]?.score ?? 0;
   const fastest = leaderboard.reduce<number | null>((best, user) => {
@@ -159,7 +170,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
                 <form className="admin-leaderboard-filter">
                   <input type="hidden" name="panel" value="leaderboard" />
                   <select name="quizId" defaultValue={selectedQuiz?._id.toString() ?? ""}>
-                    {quizzes.map((quiz) => (
+                    {quizSummaries.map((quiz) => (
                       <option key={quiz._id.toString()} value={quiz._id.toString()}>
                         {quiz.name}
                         {quiz.isActive ? " (active)" : ""}

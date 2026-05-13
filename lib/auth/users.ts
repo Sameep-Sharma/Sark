@@ -24,13 +24,22 @@ export type QuizUser = WithId<QuizUserDocument>;
 export type PublicQuizUser = Pick<QuizUser, "_id" | "name" | "usn" | "email" | "phone" | "score" | "timetaken">;
 
 export async function getQuizUsersCollection(): Promise<Collection<QuizUserDocument>> {
-  const db = await getQuizDb();
+const db = await getQuizDb();
   const collection = db.collection<QuizUserDocument>(QUIZ_USERS_COLLECTION);
 
-  await collection.createIndex({ email: 1 }, { unique: true });
-  await collection.createIndex({ usn: 1 }, { unique: true });
-
   return collection;
+}
+
+let userIndexesPromise: Promise<void> | null = null;
+
+export async function ensureQuizUserIndexes() {
+  if (!userIndexesPromise) {
+    userIndexesPromise = getQuizUsersCollection().then(async (collection) => {
+      await Promise.all([collection.createIndex({ email: 1 }, { unique: true }), collection.createIndex({ usn: 1 }, { unique: true })]);
+    });
+  }
+
+  return userIndexesPromise;
 }
 
 export async function findQuizUserByEmail(email: string) {

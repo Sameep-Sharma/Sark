@@ -3,7 +3,7 @@ import { MongoServerError } from "mongodb";
 
 import { hashPassword } from "@/lib/auth/password";
 import { createQuizSession } from "@/lib/auth/session";
-import { getQuizUsersCollection, normalizeEmail, normalizeUsn } from "@/lib/auth/users";
+import { ensureQuizUserIndexes, getQuizUsersCollection, normalizeEmail, normalizeUsn } from "@/lib/auth/users";
 
 type SignupBody = {
   name?: string;
@@ -50,6 +50,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ ok: false, message: "Password must be at least 8 characters." }, { status: 400 });
     }
 
+    await ensureQuizUserIndexes();
     const users = await getQuizUsersCollection();
     const now = new Date();
     const result = await users.insertOne({
