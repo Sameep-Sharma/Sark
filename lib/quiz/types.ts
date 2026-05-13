@@ -12,15 +12,17 @@ export type QuizQuestion = {
   options: QuizOption[];
 };
 
+export type QuizQuestionWithAnswer = QuizQuestion & {
+  answer: string;
+};
+
 export type QuizConfig = {
   title: string;
   description: string;
   duration: string;
   durationSeconds: number;
   totalQuestions?: number;
-  passingScore: string;
   startsAt: string;
-  mode: string;
   rules: string[];
   highlights: Array<{
     label: string;
@@ -35,11 +37,15 @@ export type ResultInvite = {
 };
 
 export type QuizPayload = {
+  id: string;
   config: QuizConfig;
   questions: QuizQuestion[];
   resultInvite: ResultInvite;
+  isActive: boolean;
 };
 
 export type QuizSubmission = {
   answers: Record<string, string>;
+  startedAt: number;
+  quizId?: string;
 };

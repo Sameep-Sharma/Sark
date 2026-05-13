@@ -8,16 +8,25 @@ import { AlertTriangle, ArrowLeft, ArrowRight, Check, Clock3, Loader2, Play } fr
 
 import type { QuizPayload } from "@/lib/quiz/types";
 
-export function QuizExperience() {
+type StoredQuizAttempt = {
+  hasStarted: boolean;
+  activeIndex: number;
+  answers: Record<string, string>;
+  startedAt: number;
+};
+
+export function QuizExperience({ attemptStorageKey }: { attemptStorageKey: string }) {
   const router = useRouter();
   const [quiz, setQuiz] = useState<QuizPayload | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [hasRestoredAttempt, setHasRestoredAttempt] = useState(false);
   const [hasStarted, setHasStarted] = useState(false);
   const [activeIndex, setActiveIndex] = useState(0);
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [startedAt, setStartedAt] = useState<number | null>(null);
   const [remainingSeconds, setRemainingSeconds] = useState<number | null>(null);
   const [showUnattendedWarning, setShowUnattendedWarning] = useState(false);
+  const [showAlreadySubmitted, setShowAlreadySubmitted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
@@ -29,7 +38,9 @@ export function QuizExperience() {
         const response = await fetch("/api/quiz", { cache: "no-store" });
 
         if (!response.ok) {
-          throw new Error("Quiz data request failed.");
+          const result = (await response.json().catch(() => null)) as { message?: string } | null;
+
+          throw new Error(result?.message ?? "Quiz data request failed.");
         }
 
         const payload = (await response.json()) as QuizPayload;
@@ -38,9 +49,9 @@ export function QuizExperience() {
           setQuiz(payload);
           setLoadError(null);
         }
-      } catch {
+      } catch (error) {
         if (shouldUpdate) {
-          setLoadError("Unable to load quiz data.");
+          setLoadError(error instanceof Error ? error.message : "Unable to load quiz data.");
         }
       }
     }
@@ -51,6 +62,57 @@ export function QuizExperience() {
       shouldUpdate = false;
     };
   }, []);
+
+  useEffect(() => {
+    if (!quiz || hasRestoredAttempt) {
+      return;
+    }
+
+    setHasRestoredAttempt(true);
+
+    try {
+      const stored = window.localStorage.getItem(attemptStorageKey);
+
+      if (!stored) {
+        return;
+      }
+
+      const attempt = JSON.parse(stored) as Partial<StoredQuizAttempt>;
+      const startedAtValue = typeof attempt.startedAt === "number" ? attempt.startedAt : null;
+      const activeIndexValue = typeof attempt.activeIndex === "number" ? attempt.activeIndex : 0;
+      const answersValue =
+        attempt.answers && typeof attempt.answers === "object" && !Array.isArray(attempt.answers) ? attempt.answers : {};
+
+      if (!attempt.hasStarted || !startedAtValue) {
+        return;
+      }
+
+      const elapsedSeconds = Math.floor((Date.now() - startedAtValue) / 1000);
+
+      setHasStarted(true);
+      setStartedAt(startedAtValue);
+      setActiveIndex(Math.max(0, Math.min(quiz.questions.length - 1, activeIndexValue)));
+      setAnswers(answersValue);
+      setRemainingSeconds(Math.max(0, quiz.config.durationSeconds - elapsedSeconds));
+    } catch {
+      window.localStorage.removeItem(attemptStorageKey);
+    }
+  }, [attemptStorageKey, hasRestoredAttempt, quiz]);
+
+  useEffect(() => {
+    if (!quiz || !hasStarted || !startedAt) {
+      return;
+    }
+
+    const attempt: StoredQuizAttempt = {
+      hasStarted,
+      activeIndex,
+      answers,
+      startedAt,
+    };
+
+    window.localStorage.setItem(attemptStorageKey, JSON.stringify(attempt));
+  }, [activeIndex, answers, attemptStorageKey, hasStarted, quiz, startedAt]);
 
   const totalQuestions = quiz?.questions.length ?? 0;
   const activeQuestion = quiz?.questions[activeIndex];
@@ -75,19 +137,38 @@ export function QuizExperience() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ answers }),
+        body: JSON.stringify({ answers, startedAt, quizId: quiz.id }),
       });
 
       if (!response.ok) {
+        if (response.status === 409) {
+          window.localStorage.removeItem(attemptStorageKey);
+          setShowAlreadySubmitted(true);
+          return;
+        }
+
         throw new Error("Quiz submission failed.");
       }
 
+      window.localStorage.removeItem(attemptStorageKey);
       router.push("/quiz/result");
     } catch {
       setSubmitError("Unable to submit right now. Please try again.");
       setIsSubmitting(false);
     }
-  }, [answers, isSubmitting, quiz, router]);
+  }, [answers, attemptStorageKey, isSubmitting, quiz, router]);
+
+  useEffect(() => {
+    if (!showAlreadySubmitted) {
+      return;
+    }
+
+    const timeout = window.setTimeout(() => {
+      router.replace("/");
+    }, 20_000);
+
+    return () => window.clearTimeout(timeout);
+  }, [router, showAlreadySubmitted]);
 
   useEffect(() => {
     if (!quiz || !hasStarted || !startedAt || isSubmitting) {
@@ -126,9 +207,11 @@ export function QuizExperience() {
   }
 
   function startQuiz() {
+    const nextStartedAt = Date.now();
+
     setHasStarted(true);
     setActiveIndex(0);
-    setStartedAt(Date.now());
+    setStartedAt(nextStartedAt);
     setRemainingSeconds(quiz?.config.durationSeconds ?? null);
   }
 
@@ -175,12 +258,14 @@ export function QuizExperience() {
         </>
       ) : null}
 
-      {!quiz ? (
+      {showAlreadySubmitted ? <QuizAlreadySubmittedOverlay /> : null}
+
+      {!quiz || !hasRestoredAttempt ? (
         <QuizLoading message={loadError ?? "Loading quiz data"} />
       ) : !hasStarted ? (
         <section className="quiz-start">
           <div className="quiz-start__intro">
-            <p>{quiz.config.startsAt}</p>
+            <p>{formatStartTime(quiz.config.startsAt)}</p>
             <h1>{quiz.config.title}</h1>
             <span>{quiz.config.description}</span>
           </div>
@@ -194,26 +279,9 @@ export function QuizExperience() {
               <span>Duration</span>
               <strong>{quiz.config.duration}</strong>
             </div>
-            <div className="quiz-start__meta">
-              <span>Passing</span>
-              <strong>{quiz.config.passingScore}</strong>
-            </div>
-            <div className="quiz-start__meta">
-              <span>Mode</span>
-              <strong>{quiz.config.mode}</strong>
-            </div>
           </div>
 
           <div className="quiz-start__lower">
-            <div className="quiz-start__highlights">
-              {quiz.config.highlights.map((item) => (
-                <div key={item.label}>
-                  <span>{item.label}</span>
-                  <strong>{item.value}</strong>
-                </div>
-              ))}
-            </div>
-
             <div className="quiz-rules">
               {quiz.config.rules.map((rule, index) => (
                 <p key={rule}>
@@ -312,6 +380,49 @@ export function QuizExperience() {
   );
 }
 
+export function QuizAlreadySubmitted({ score, quizName, message }: { score?: number; quizName?: string; message?: string }) {
+  const router = useRouter();
+
+  useEffect(() => {
+    const timeout = window.setTimeout(() => {
+      router.replace("/");
+    }, 20_000);
+
+    return () => window.clearTimeout(timeout);
+  }, [router]);
+
+  return (
+    <main className="quiz-app">
+      <header className="quiz-chrome">
+        <Image className="quiz-logo" src="/SARK-LOGO.png" alt="SARK" width={220} height={80} priority />
+      </header>
+      <QuizAlreadySubmittedOverlay score={score} quizName={quizName} message={message} />
+    </main>
+  );
+}
+
+function QuizAlreadySubmittedOverlay({ score, quizName, message }: { score?: number; quizName?: string; message?: string }) {
+  return (
+    <div className="quiz-attempt-toast" role="alert" aria-live="assertive">
+      <div className="quiz-attempt-toast__panel">
+        <span>
+          <Check />
+        </span>
+        <p>{message ? "Quiz unavailable" : "Attempt already submitted"}</p>
+        <h2>{message ?? "You cannot retake this quiz."}</h2>
+        <strong>
+          {typeof score === "number"
+            ? `Recorded score: ${score}%${quizName ? ` for ${quizName}` : ""}`
+            : message
+              ? "Please check back after an admin activates a quiz."
+              : "Your recorded result is already saved."}
+        </strong>
+        <em>Redirecting to home in 20 seconds.</em>
+      </div>
+    </div>
+  );
+}
+
 function QuizTimer({ remainingSeconds, totalSeconds }: { remainingSeconds: number; totalSeconds: number }) {
   const minutes = Math.floor(remainingSeconds / 60);
   const seconds = remainingSeconds % 60;
@@ -384,4 +495,14 @@ function QuizLoading({ message }: { message: string }) {
       <div aria-hidden="true" />
     </section>
   );
+}
+
+function formatStartTime(value: string) {
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return value;
+  }
+
+  return `Started ${date.toLocaleString()}`;
 }

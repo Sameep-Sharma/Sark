@@ -4,9 +4,7 @@
     "description": "A short technical quiz for evaluating web fundamentals, product thinking, and engineering judgment.",
     "duration": "18 min",
     "durationSeconds": 1080,
-    "passingScore": "70%",
     "startsAt": "Open now",
-    "mode": "Single attempt",
     "rules": [
       "Answer every question before final submission.",
       "You can move back and update responses before submitting.",

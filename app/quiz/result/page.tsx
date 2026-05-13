@@ -1,8 +1,11 @@
 import type { Metadata } from "next";
 import Image from "next/image";
-import { CheckCircle2, MessageCircle, Sparkles } from "lucide-react";
+import { redirect } from "next/navigation";
+import { CheckCircle2, MessageCircle } from "lucide-react";
 
-import { getQuizPayload } from "@/lib/quiz/data";
+import { getQuizSession } from "@/lib/auth/session";
+import { findQuizUserById } from "@/lib/auth/users";
+import { getQuizSubmissionsCollection, findQuizById } from "@/lib/quiz/db";
 
 export const metadata: Metadata = {
   title: "Quiz Submitted",
@@ -10,8 +13,22 @@ export const metadata: Metadata = {
 };
 
 export default async function QuizResultPage() {
-  const quiz = await getQuizPayload();
-  const invite = quiz.resultInvite;
+  const session = await getQuizSession();
+
+  if (!session) {
+    redirect("/quiz/login");
+  }
+
+  const user = await findQuizUserById(session.userId);
+
+  if (!user) {
+    redirect("/quiz/login");
+  }
+
+  const submissions = await getQuizSubmissionsCollection();
+  const submission = await submissions.findOne({ userId: user._id }, { sort: { submittedAt: -1 } });
+  const quiz = submission ? await findQuizById(submission.quizId.toString()) : null;
+  const invite = quiz?.resultInvite;
 
   return (
     <main className="quiz-result-page">
@@ -28,19 +45,14 @@ export default async function QuizResultPage() {
           <span>Your responses have been submitted. The SARK team will review the attempt and continue the process from here.</span>
         </div>
 
-        <div className="quiz-result__signal" aria-hidden="true">
-          <Sparkles />
-          <span>Locked in</span>
-        </div>
-
-        {invite.image ? (
+        {invite && (invite.title || invite.description || invite.image) ? (
           <aside className="quiz-result__invite">
             <div>
               <MessageCircle />
               <h2>{invite.title}</h2>
               <p>{invite.description}</p>
             </div>
-            <Image src={invite.image} alt={invite.title} width={240} height={240} />
+            {invite.image ? <Image src={invite.image} alt={invite.title || "Result invite"} width={240} height={240} unoptimized /> : null}
           </aside>
         ) : null}
       </section>
