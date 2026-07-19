@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 
 import { getAdminSession } from "@/lib/auth/admin-session";
-import { ensureQuizIndexes, getQuizzesCollection, listQuizzes, setActiveQuiz, validateQuizDocumentInput } from "@/lib/quiz/db";
+import { listQuizzes, setActiveQuiz, validateQuizDocumentInput } from "@/lib/quiz/db";
+import { getSupabaseAdmin } from "@/lib/db/supabase";
 
 export async function GET() {
   const session = await getAdminSession();
@@ -14,10 +15,7 @@ export async function GET() {
 
   return NextResponse.json({
     ok: true,
-    quizzes: quizzes.map((quiz) => ({
-      ...quiz,
-      _id: quiz._id.toString(),
-    })),
+    quizzes,
   });
 }
 
@@ -34,20 +32,31 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: false, message: validation.message }, { status: 400 });
   }
 
-  await ensureQuizIndexes();
-  const quizzes = await getQuizzesCollection();
-  const now = new Date();
+  const db = getSupabaseAdmin();
+  const now = new Date().toISOString();
 
-  const result = await quizzes.insertOne({
-    ...validation.quiz,
-    isActive: false,
-    createdAt: now,
-    updatedAt: now,
-  });
+  const { data, error } = await db
+    .from("quizzes")
+    .insert({
+      name: validation.quiz.name,
+      config: validation.quiz.config,
+      questions: validation.quiz.questions,
+      result_invite: validation.quiz.resultInvite,
+      is_active: false,
+      created_at: now,
+      updated_at: now,
+    })
+    .select("id")
+    .single();
 
-  if (validation.quiz.isActive) {
-    await setActiveQuiz(result.insertedId.toString(), true);
+  if (error) {
+    console.error("Quiz creation failed", error);
+    return NextResponse.json({ ok: false, message: "Failed to create quiz." }, { status: 500 });
   }
 
-  return NextResponse.json({ ok: true, quizId: result.insertedId.toString() }, { status: 201 });
+  if (validation.quiz.isActive) {
+    await setActiveQuiz(data.id, true);
+  }
+
+  return NextResponse.json({ ok: true, quizId: data.id }, { status: 201 });
 }

@@ -2,13 +2,9 @@ import "server-only";
 
 import { readFile } from "node:fs/promises";
 import path from "node:path";
-import { ObjectId, type Collection, type WithId } from "mongodb";
 
-import { getQuizDb } from "@/lib/auth/mongodb";
+import { getSupabaseAdmin } from "@/lib/db/supabase";
 import type { QuizPayload, QuizQuestionWithAnswer, ResultInvite } from "./types";
-
-export const QUIZZES_COLLECTION = "quizzes";
-export const QUIZ_SUBMISSIONS_COLLECTION = "quiz-submissions";
 
 export type QuizDocument = {
   name: string;
@@ -21,9 +17,9 @@ export type QuizDocument = {
 };
 
 export type QuizSubmissionDocument = {
-  quizId: ObjectId;
+  quizId: string;
   quizName: string;
-  userId: ObjectId;
+  userId: string;
   answers: Record<string, string>;
   score: number;
   correctCount: number;
@@ -41,48 +37,35 @@ type LegacyQuizData = Omit<QuizPayload, "id" | "questions" | "isActive"> & {
   questions: QuizQuestionWithAnswer[];
 };
 
-export type Quiz = WithId<QuizDocument>;
-export type QuizSubmissionResult = WithId<QuizSubmissionDocument>;
+export type Quiz = QuizDocument & { id: string };
+export type QuizSubmissionResult = QuizSubmissionDocument & { id: string };
 
-let quizIndexesPromise: Promise<void> | null = null;
-let submissionIndexesPromise: Promise<void> | null = null;
 let defaultQuizPromise: Promise<void> | null = null;
 
-export async function getQuizzesCollection(): Promise<Collection<QuizDocument>> {
-  const db = await getQuizDb();
-
-  return db.collection<QuizDocument>(QUIZZES_COLLECTION);
-}
-
-export async function getQuizSubmissionsCollection(): Promise<Collection<QuizSubmissionDocument>> {
-  const db = await getQuizDb();
-
-  return db.collection<QuizSubmissionDocument>(QUIZ_SUBMISSIONS_COLLECTION);
-}
-
+// ── No-ops: indexes are in SQL ──────────────────────────────
 export async function ensureQuizIndexes() {
-  if (!quizIndexesPromise) {
-    quizIndexesPromise = getQuizzesCollection().then(async (collection) => {
-      await Promise.all([collection.createIndex({ isActive: 1 }), collection.createIndex({ name: 1 })]);
-    });
-  }
-
-  return quizIndexesPromise;
+  // no-op
 }
 
 export async function ensureQuizSubmissionIndexes() {
-  if (!submissionIndexesPromise) {
-    submissionIndexesPromise = getQuizSubmissionsCollection().then(async (collection) => {
-      await Promise.all([
-        collection.createIndex({ quizId: 1, score: -1, timetaken: 1 }),
-        collection.createIndex({ userId: 1, quizId: 1 }, { unique: true }),
-      ]);
-    });
-  }
-
-  return submissionIndexesPromise;
+  // no-op
 }
 
+// ── Mappers ─────────────────────────────────────────────────
+function mapQuizRow(row: any): Quiz {
+  return {
+    id: row.id,
+    name: row.name,
+    config: row.config,
+    questions: row.questions,
+    resultInvite: row.result_invite,
+    isActive: row.is_active,
+    createdAt: new Date(row.created_at),
+    updatedAt: new Date(row.updated_at),
+  };
+}
+
+// ── Seeding ─────────────────────────────────────────────────
 export async function ensureDefaultQuiz() {
   if (defaultQuizPromise) {
     return defaultQuizPromise;
@@ -93,96 +76,119 @@ export async function ensureDefaultQuiz() {
 }
 
 async function seedDefaultQuizIfNeeded() {
-  const quizzes = await getQuizzesCollection();
-  const existingCount = await quizzes.estimatedDocumentCount();
+  const db = getSupabaseAdmin();
+  const { count, error } = await db
+    .from("quizzes")
+    .select("*", { count: "exact", head: true });
 
-  if (existingCount > 0) {
-    return;
-  }
+  if (error) throw error;
+  if (count && count > 0) return;
 
   const filePath = path.join(process.cwd(), "data", "quiz.json");
   const file = await readFile(filePath, "utf8");
   const legacyQuiz = JSON.parse(file) as LegacyQuizData;
-  const now = new Date();
+  const now = new Date().toISOString();
 
-  await quizzes.insertOne({
+  await db.from("quizzes").insert({
     name: legacyQuiz.config.title,
     config: normalizeStoredConfig(legacyQuiz.config, legacyQuiz.config.title),
     questions: legacyQuiz.questions,
-    resultInvite: legacyQuiz.resultInvite,
-    isActive: true,
-    createdAt: now,
-    updatedAt: now,
+    result_invite: legacyQuiz.resultInvite,
+    is_active: true,
+    created_at: now,
+    updated_at: now,
   });
 }
 
-export async function listQuizzes() {
+// ── Queries ─────────────────────────────────────────────────
+export async function listQuizzes(): Promise<Quiz[]> {
   await ensureDefaultQuiz();
-  const quizzes = await getQuizzesCollection();
+  const db = getSupabaseAdmin();
+  const { data, error } = await db
+    .from("quizzes")
+    .select("*")
+    .order("updated_at", { ascending: false });
 
-  return quizzes.find({}).sort({ updatedAt: -1 }).toArray();
+  if (error) throw error;
+  return (data || []).map(mapQuizRow);
 }
 
-export async function listQuizSummaries() {
+export async function listQuizSummaries(): Promise<Pick<Quiz, "id" | "name" | "isActive">[]> {
   await ensureDefaultQuiz();
-  const quizzes = await getQuizzesCollection();
+  const db = getSupabaseAdmin();
+  const { data, error } = await db
+    .from("quizzes")
+    .select("id, name, is_active")
+    .order("updated_at", { ascending: false });
 
-  return quizzes
-    .find({})
-    .project<Pick<Quiz, "_id" | "name" | "isActive">>({ _id: 1, name: 1, isActive: 1 })
-    .sort({ updatedAt: -1 })
-    .toArray();
+  if (error) throw error;
+  return (data || []).map((row) => ({
+    id: row.id,
+    name: row.name,
+    isActive: row.is_active,
+  }));
 }
 
-export async function getActiveQuiz() {
+export async function getActiveQuiz(): Promise<Quiz | null> {
   await ensureDefaultQuiz();
-  const quizzes = await getQuizzesCollection();
+  const db = getSupabaseAdmin();
+  const { data, error } = await db
+    .from("quizzes")
+    .select("*")
+    .eq("is_active", true)
+    .maybeSingle();
 
-  return quizzes.findOne({ isActive: true });
+  if (error) throw error;
+  if (!data) return null;
+  return mapQuizRow(data);
 }
 
 export function hasQuizStarted(quiz: Pick<QuizDocument, "config">) {
   const startsAt = new Date(quiz.config.startsAt);
-
   return Number.isNaN(startsAt.getTime()) || startsAt.getTime() <= Date.now();
 }
 
-export async function findQuizById(quizId: string) {
-  if (!ObjectId.isValid(quizId)) {
-    return null;
-  }
-
+export async function findQuizById(quizId: string): Promise<Quiz | null> {
   await ensureDefaultQuiz();
-  const quizzes = await getQuizzesCollection();
+  const db = getSupabaseAdmin();
+  const { data, error } = await db
+    .from("quizzes")
+    .select("*")
+    .eq("id", quizId)
+    .maybeSingle();
 
-  return quizzes.findOne({ _id: new ObjectId(quizId) });
+  if (error) throw error;
+  if (!data) return null;
+  return mapQuizRow(data);
 }
 
-export async function setActiveQuiz(quizId: string, isActive: boolean) {
-  if (!ObjectId.isValid(quizId)) {
-    return null;
-  }
-
-  const quizzes = await getQuizzesCollection();
-  const quizObjectId = new ObjectId(quizId);
-  const now = new Date();
+export async function setActiveQuiz(quizId: string, isActive: boolean): Promise<Quiz | null> {
+  const db = getSupabaseAdmin();
+  const now = new Date().toISOString();
 
   if (isActive) {
-    await quizzes.updateMany({ _id: { $ne: quizObjectId }, isActive: true }, { $set: { isActive: false, updatedAt: now } });
+    await db
+      .from("quizzes")
+      .update({ is_active: false, updated_at: now })
+      .neq("id", quizId)
+      .eq("is_active", true);
   }
 
-  const result = await quizzes.findOneAndUpdate(
-    { _id: quizObjectId },
-    { $set: { isActive, updatedAt: now } },
-    { returnDocument: "after" },
-  );
+  const { data, error } = await db
+    .from("quizzes")
+    .update({ is_active: isActive, updated_at: now })
+    .eq("id", quizId)
+    .select("*")
+    .maybeSingle();
 
-  return result;
+  if (error) throw error;
+  if (!data) return null;
+  return mapQuizRow(data);
 }
 
 export function toQuizPayload(quiz: Quiz): QuizPayload {
   return {
-    id: quiz._id.toString(),
+    id: quiz.id,
     config: {
       ...quiz.config,
       totalQuestions: quiz.questions.length,

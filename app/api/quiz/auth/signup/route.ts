@@ -1,9 +1,8 @@
 import { NextResponse } from "next/server";
-import { MongoServerError } from "mongodb";
 
 import { hashPassword } from "@/lib/auth/password";
 import { createQuizSession } from "@/lib/auth/session";
-import { ensureQuizUserIndexes, getQuizUsersCollection, normalizeEmail, normalizeUsn } from "@/lib/auth/users";
+import { createQuizUser, normalizeEmail, normalizeUsn } from "@/lib/auth/users";
 
 type SignupBody = {
   name?: string;
@@ -50,26 +49,19 @@ export async function POST(request: Request) {
       return NextResponse.json({ ok: false, message: "Password must be at least 8 characters." }, { status: 400 });
     }
 
-    await ensureQuizUserIndexes();
-    const users = await getQuizUsersCollection();
-    const now = new Date();
-    const result = await users.insertOne({
+    const { id } = await createQuizUser({
       name,
       usn,
       email,
       phone,
       passwordHash: hashPassword(password),
-      score: null,
-      timetaken: null,
-      createdAt: now,
-      updatedAt: now,
     });
 
-    await createQuizSession({ _id: result.insertedId, email });
+    await createQuizSession({ id, email });
 
     return NextResponse.json({ ok: true });
-  } catch (error) {
-    if (error instanceof MongoServerError && error.code === 11000) {
+  } catch (error: any) {
+    if (error?.code === "23505") { // PostgreSQL unique violation
       return NextResponse.json({ ok: false, message: "A user with this email or USN already exists." }, { status: 409 });
     }
 

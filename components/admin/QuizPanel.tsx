@@ -7,7 +7,7 @@ import { CheckCircle2, Circle, FilePenLine, ImageUp, Plus, Save, Trash2 } from "
 import type { QuizQuestionWithAnswer, ResultInvite } from "@/lib/quiz/types";
 
 type AdminQuiz = {
-  _id: string;
+  id: string;
   name: string;
   config: {
     title: string;
@@ -27,7 +27,7 @@ type QuizPanelProps = {
   initialQuizzes: AdminQuiz[];
 };
 
-const emptyQuiz: Omit<AdminQuiz, "_id"> = {
+const emptyQuiz: Omit<AdminQuiz, "id"> = {
   name: "",
   config: {
     title: "",
@@ -64,14 +64,14 @@ const emptyQuiz: Omit<AdminQuiz, "_id"> = {
 
 export function QuizPanel({ initialQuizzes }: QuizPanelProps) {
   const [quizzes, setQuizzes] = useState(initialQuizzes);
-  const [editingId, setEditingId] = useState<string | null>(initialQuizzes[0]?._id ?? null);
-  const [draft, setDraft] = useState<Omit<AdminQuiz, "_id">>(() => cloneQuiz(initialQuizzes[0] ?? emptyQuiz));
+  const [editingId, setEditingId] = useState<string | null>(initialQuizzes[0]?.id ?? null);
+  const [draft, setDraft] = useState<Omit<AdminQuiz, "id">>(() => cloneQuiz(initialQuizzes[0] ?? emptyQuiz));
   const [message, setMessage] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [activeUpdatingId, setActiveUpdatingId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
-  const editingQuiz = useMemo(() => quizzes.find((quiz) => quiz._id === editingId), [editingId, quizzes]);
+  const editingQuiz = useMemo(() => quizzes.find((quiz) => quiz.id === editingId), [editingId, quizzes]);
   const durationMinutes = Math.max(1, Math.round(draft.config.durationSeconds / 60));
 
   function startNewQuiz() {
@@ -81,7 +81,7 @@ export function QuizPanel({ initialQuizzes }: QuizPanelProps) {
   }
 
   function editQuiz(quiz: AdminQuiz) {
-    setEditingId(quiz._id);
+    setEditingId(quiz.id);
     setDraft(cloneQuiz(quiz));
     setMessage(null);
   }
@@ -116,8 +116,8 @@ export function QuizPanel({ initialQuizzes }: QuizPanelProps) {
       }
 
       const nextQuizzes = await refreshQuizzes();
-      const nextId = editingId ?? result.quizId ?? nextQuizzes[0]?._id ?? null;
-      const savedQuiz = nextQuizzes.find((quiz) => quiz._id === nextId);
+      const nextId = editingId ?? result.quizId ?? nextQuizzes[0]?.id ?? null;
+      const savedQuiz = nextQuizzes.find((quiz) => quiz.id === nextId);
 
       setEditingId(nextId);
       if (savedQuiz) {
@@ -132,11 +132,11 @@ export function QuizPanel({ initialQuizzes }: QuizPanelProps) {
   }
 
   async function toggleActive(quiz: AdminQuiz) {
-    setActiveUpdatingId(quiz._id);
+    setActiveUpdatingId(quiz.id);
     setMessage(null);
 
     try {
-      const response = await fetch(`/api/admin/quizzes/${quiz._id}`, {
+      const response = await fetch(`/api/admin/quizzes/${quiz.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ isActive: !quiz.isActive }),
@@ -148,7 +148,7 @@ export function QuizPanel({ initialQuizzes }: QuizPanelProps) {
       }
 
       const nextQuizzes = await refreshQuizzes();
-      const nextEditing = nextQuizzes.find((item) => item._id === editingId);
+      const nextEditing = nextQuizzes.find((item) => item.id === editingId);
 
       if (nextEditing) {
         setDraft(cloneQuiz(nextEditing));
@@ -165,11 +165,11 @@ export function QuizPanel({ initialQuizzes }: QuizPanelProps) {
       return;
     }
 
-    setDeletingId(quiz._id);
+    setDeletingId(quiz.id);
     setMessage(null);
 
     try {
-      const response = await fetch(`/api/admin/quizzes/${quiz._id}`, { method: "DELETE" });
+      const response = await fetch(`/api/admin/quizzes/${quiz.id}`, { method: "DELETE" });
       const result = (await response.json()) as { ok: boolean; message?: string };
 
       if (!response.ok || !result.ok) {
@@ -178,7 +178,7 @@ export function QuizPanel({ initialQuizzes }: QuizPanelProps) {
 
       const nextQuizzes = await refreshQuizzes();
       const nextQuiz = nextQuizzes[0] ?? null;
-      setEditingId(nextQuiz?._id ?? null);
+      setEditingId(nextQuiz?.id ?? null);
       setDraft(cloneQuiz(nextQuiz ?? emptyQuiz));
       setMessage("Quiz deleted.");
     } catch (error) {
@@ -280,7 +280,7 @@ export function QuizPanel({ initialQuizzes }: QuizPanelProps) {
         <aside className="admin-quiz-list" aria-label="Existing quizzes">
           {quizzes.length > 0 ? (
             quizzes.map((quiz) => (
-              <article key={quiz._id} className={quiz._id === editingId ? "is-selected" : ""}>
+              <article key={quiz.id} className={quiz.id === editingId ? "is-selected" : ""}>
                 <button type="button" onClick={() => editQuiz(quiz)}>
                   <FilePenLine />
                   <span>
@@ -293,7 +293,7 @@ export function QuizPanel({ initialQuizzes }: QuizPanelProps) {
                     type="button"
                     className={`admin-active-toggle ${quiz.isActive ? "is-active" : ""}`}
                     onClick={() => void toggleActive(quiz)}
-                    disabled={activeUpdatingId === quiz._id}
+                    disabled={activeUpdatingId === quiz.id}
                     aria-pressed={quiz.isActive}
                   >
                     {quiz.isActive ? <CheckCircle2 /> : <Circle />}
@@ -303,7 +303,7 @@ export function QuizPanel({ initialQuizzes }: QuizPanelProps) {
                     type="button"
                     className="admin-delete-button"
                     onClick={() => void deleteQuiz(quiz)}
-                    disabled={deletingId === quiz._id}
+                    disabled={deletingId === quiz.id}
                     aria-label={`Delete ${quiz.name}`}
                   >
                     <Trash2 />
@@ -506,7 +506,7 @@ function Field({
   );
 }
 
-function cloneQuiz(quiz: Omit<AdminQuiz, "_id"> | AdminQuiz): Omit<AdminQuiz, "_id"> {
+function cloneQuiz(quiz: Omit<AdminQuiz, "id"> | AdminQuiz): Omit<AdminQuiz, "id"> {
   return JSON.parse(
     JSON.stringify({
       name: quiz.name,
@@ -523,10 +523,10 @@ function cloneQuiz(quiz: Omit<AdminQuiz, "_id"> | AdminQuiz): Omit<AdminQuiz, "_
       resultInvite: quiz.resultInvite,
       isActive: quiz.isActive,
     }),
-  ) as Omit<AdminQuiz, "_id">;
+  ) as Omit<AdminQuiz, "id">;
 }
 
-function serializeDraft(draft: Omit<AdminQuiz, "_id">) {
+function serializeDraft(draft: Omit<AdminQuiz, "id">) {
   return {
     ...draft,
     config: {

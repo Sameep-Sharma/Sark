@@ -13,7 +13,7 @@ type AdminSessionPayload = {
 };
 
 function getSessionSecret() {
-  return `${process.env.AUTH_SECRET ?? process.env.NEXTAUTH_SECRET ?? process.env.MONGODB_URI ?? "sark-admin-dev-secret"}:admin`;
+  return `${process.env.AUTH_SECRET ?? process.env.NEXTAUTH_SECRET ?? process.env.NEXT_PUBLIC_SUPABASE_URL ?? "sark-admin-dev-secret"}:admin`;
 }
 
 function sign(value: string) {

@@ -2,7 +2,6 @@ import "server-only";
 
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { cookies } from "next/headers";
-import type { ObjectId } from "mongodb";
 
 export const QUIZ_SESSION_COOKIE = "sark_quiz_session";
 
@@ -15,7 +14,7 @@ type SessionPayload = {
 };
 
 function getSessionSecret() {
-  return process.env.AUTH_SECRET ?? process.env.NEXTAUTH_SECRET ?? process.env.MONGODB_URI ?? "sark-quiz-dev-secret";
+  return process.env.AUTH_SECRET ?? process.env.NEXTAUTH_SECRET ?? process.env.NEXT_PUBLIC_SUPABASE_URL ?? "sark-quiz-dev-secret";
 }
 
 function base64UrlEncode(value: string) {
@@ -65,10 +64,10 @@ function readSessionToken(token: string): SessionPayload | null {
   }
 }
 
-export async function createQuizSession(user: { _id: ObjectId; email: string }) {
+export async function createQuizSession(user: { id: string; email: string }) {
   const cookieStore = await cookies();
   const token = createSessionToken({
-    userId: user._id.toString(),
+    userId: user.id,
     email: user.email,
     expiresAt: Date.now() + SESSION_MAX_AGE_SECONDS * 1000,
   });

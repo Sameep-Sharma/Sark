@@ -31,11 +31,11 @@ export default async function QuizPage() {
     return <QuizAlreadySubmitted message="No quiz is active right now." />;
   }
 
-  const submission = await findQuizSubmission(user._id, activeQuiz._id);
+  const submission = await findQuizSubmission(user.id, activeQuiz.id);
 
   if (submission) {
     return <QuizAlreadySubmitted score={submission.score} quizName={submission.quizName} />;
   }
 
-  return <QuizExperience attemptStorageKey={`sark-quiz-attempt:${session.userId}:${activeQuiz._id.toString()}`} />;
+  return <QuizExperience attemptStorageKey={`sark-quiz-attempt:${session.userId}:${activeQuiz.id}`} />;
 }

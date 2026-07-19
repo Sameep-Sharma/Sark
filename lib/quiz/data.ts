@@ -1,11 +1,9 @@
 import "server-only";
 
-import type { ObjectId } from "mongodb";
-
+import { getSupabaseAdmin } from "@/lib/db/supabase";
 import {
   findQuizById,
   getActiveQuiz,
-  getQuizSubmissionsCollection,
   toQuizPayload,
   validateQuizAnswers,
   type Quiz,
@@ -27,8 +25,17 @@ export async function validateQuizSubmission(quiz: Quiz, answers: Record<string,
   return validateQuizAnswers(quiz, answers);
 }
 
-export async function findQuizSubmission(userId: ObjectId, quizId: ObjectId) {
-  const submissions = await getQuizSubmissionsCollection();
+export async function findQuizSubmission(userId: string, quizId: string) {
+  const db = getSupabaseAdmin();
+  
+  const { data, error } = await db
+    .from("quiz_submissions")
+    .select("*")
+    .eq("user_id", userId)
+    .eq("quiz_id", quizId)
+    .maybeSingle();
 
-  return submissions.findOne({ userId, quizId });
+  if (error) throw error;
+  
+  return data;
 }

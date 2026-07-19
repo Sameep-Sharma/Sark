@@ -1,9 +1,10 @@
 import { NextResponse } from "next/server";
 
 import { getQuizSession } from "@/lib/auth/session";
-import { findQuizUserById, getQuizUsersCollection } from "@/lib/auth/users";
+import { findQuizUserById, updateQuizUserScore } from "@/lib/auth/users";
 import { findQuizSubmission, validateQuizSubmission } from "@/lib/quiz/data";
-import { ensureQuizSubmissionIndexes, getActiveQuiz, getQuizSubmissionsCollection, hasQuizStarted, toQuizPayload } from "@/lib/quiz/db";
+import { getActiveQuiz, hasQuizStarted, toQuizPayload } from "@/lib/quiz/db";
+import { getSupabaseAdmin } from "@/lib/db/supabase";
 import type { QuizSubmission } from "@/lib/quiz/types";
 
 export async function GET() {
@@ -32,11 +33,11 @@ export async function GET() {
     );
   }
 
-  const existingSubmission = await findQuizSubmission(user._id, quiz._id);
+  const existingSubmission = await findQuizSubmission(user.id, quiz.id);
 
   if (existingSubmission) {
     return NextResponse.json(
-      { ok: false, message: "Quiz already submitted.", score: existingSubmission.score, quizName: existingSubmission.quizName },
+      { ok: false, message: "Quiz already submitted.", score: existingSubmission.score, quizName: existingSubmission.quiz_name },
       { status: 409 },
     );
   }
@@ -74,15 +75,15 @@ export async function POST(request: Request) {
       return NextResponse.json({ ok: false, message: "Invalid quiz submission." }, { status: 400 });
     }
 
-    if (body.quizId && body.quizId !== quiz._id.toString()) {
+    if (body.quizId && body.quizId !== quiz.id) {
       return NextResponse.json({ ok: false, message: "The active quiz changed. Please reload before submitting." }, { status: 409 });
     }
 
-    const existingSubmission = await findQuizSubmission(user._id, quiz._id);
+    const existingSubmission = await findQuizSubmission(user.id, quiz.id);
 
     if (existingSubmission) {
       return NextResponse.json(
-        { ok: false, message: "Quiz already submitted.", score: existingSubmission.score, quizName: existingSubmission.quizName },
+        { ok: false, message: "Quiz already submitted.", score: existingSubmission.score, quizName: existingSubmission.quiz_name },
         { status: 409 },
       );
     }
@@ -92,46 +93,42 @@ export async function POST(request: Request) {
     const startedAt = typeof body.startedAt === "number" ? body.startedAt : Date.now();
     const elapsedSeconds = Math.max(0, Math.floor((Date.now() - startedAt) / 1000));
     const timetaken = Math.min(elapsedSeconds, quiz.config.durationSeconds);
-    const users = await getQuizUsersCollection();
-    await ensureQuizSubmissionIndexes();
-    const submissions = await getQuizSubmissionsCollection();
-    const now = new Date();
+    const now = new Date().toISOString();
+    
+    const db = getSupabaseAdmin();
 
-    try {
-      await submissions.insertOne({
-        quizId: quiz._id,
-        quizName: quiz.name,
-        userId: user._id,
-        answers: result.answers,
-        score,
-        correctCount: result.correctCount,
-        totalQuestions: result.totalQuestions,
-        answeredCount: result.answeredCount,
-        unansweredCount: result.unansweredCount,
-        timetaken,
-        startedAt: new Date(startedAt),
-        submittedAt: now,
-        createdAt: now,
-        updatedAt: now,
-      });
-    } catch {
-      return NextResponse.json({ ok: false, message: "Quiz already submitted." }, { status: 409 });
+    const { error: insertError } = await db.from("quiz_submissions").insert({
+      quiz_id: quiz.id,
+      quiz_name: quiz.name,
+      user_id: user.id,
+      answers: result.answers,
+      score,
+      correct_count: result.correctCount,
+      total_questions: result.totalQuestions,
+      answered_count: result.answeredCount,
+      unanswered_count: result.unansweredCount,
+      timetaken,
+      started_at: new Date(startedAt).toISOString(),
+      submitted_at: now,
+      created_at: now,
+      updated_at: now,
+    });
+
+    if (insertError) {
+      if (insertError.code === "23505") { // unique violation
+        return NextResponse.json({ ok: false, message: "Quiz already submitted." }, { status: 409 });
+      }
+      throw insertError;
     }
 
-    await users.updateOne(
-      { _id: user._id },
-      {
-        $set: {
-          score,
-          timetaken,
-          latestQuizId: quiz._id.toString(),
-          latestQuizName: quiz.name,
-          updatedAt: now,
-        },
-      },
-    );
+    await updateQuizUserScore(user.id, {
+      score,
+      timetaken,
+      latestQuizId: quiz.id,
+      latestQuizName: quiz.name,
+    });
 
-    return NextResponse.json({ ok: true, score, timetaken, quizId: quiz._id.toString(), quizName: quiz.name });
+    return NextResponse.json({ ok: true, score, timetaken, quizId: quiz.id, quizName: quiz.name });
   } catch (error) {
     console.error("Quiz submission failed", error);
 

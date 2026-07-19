@@ -5,7 +5,8 @@ import { CheckCircle2, MessageCircle } from "lucide-react";
 
 import { getQuizSession } from "@/lib/auth/session";
 import { findQuizUserById } from "@/lib/auth/users";
-import { getQuizSubmissionsCollection, findQuizById } from "@/lib/quiz/db";
+import { getSupabaseAdmin } from "@/lib/db/supabase";
+import { findQuizById } from "@/lib/quiz/db";
 
 export const metadata: Metadata = {
   title: "Quiz Submitted",
@@ -25,9 +26,16 @@ export default async function QuizResultPage() {
     redirect("/quiz/login");
   }
 
-  const submissions = await getQuizSubmissionsCollection();
-  const submission = await submissions.findOne({ userId: user._id }, { sort: { submittedAt: -1 } });
-  const quiz = submission ? await findQuizById(submission.quizId.toString()) : null;
+  const db = getSupabaseAdmin();
+  const { data: submission } = await db
+    .from("quiz_submissions")
+    .select("quiz_id")
+    .eq("user_id", user.id)
+    .order("submitted_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  const quiz = submission ? await findQuizById(submission.quiz_id) : null;
   const invite = quiz?.resultInvite;
 
   return (

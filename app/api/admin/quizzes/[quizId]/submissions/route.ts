@@ -1,8 +1,7 @@
 import { NextResponse } from "next/server";
-import { ObjectId } from "mongodb";
 
 import { getAdminSession } from "@/lib/auth/admin-session";
-import { getQuizSubmissionsCollection } from "@/lib/quiz/db";
+import { getSupabaseAdmin } from "@/lib/db/supabase";
 
 type RouteContext = {
   params: Promise<{ quizId: string }>;
@@ -17,12 +16,20 @@ export async function DELETE(_request: Request, context: RouteContext) {
 
   const { quizId } = await context.params;
 
-  if (!ObjectId.isValid(quizId)) {
+  if (!quizId) {
     return NextResponse.json({ ok: false, message: "Invalid quiz id." }, { status: 400 });
   }
 
-  const submissions = await getQuizSubmissionsCollection();
-  const result = await submissions.deleteMany({ quizId: new ObjectId(quizId) });
+  const db = getSupabaseAdmin();
+  const { data, error } = await db
+    .from("quiz_submissions")
+    .delete()
+    .eq("quiz_id", quizId)
+    .select("id");
 
-  return NextResponse.json({ ok: true, deletedCount: result.deletedCount });
+  if (error) {
+    return NextResponse.json({ ok: false, message: "Failed to delete submissions." }, { status: 500 });
+  }
+
+  return NextResponse.json({ ok: true, deletedCount: data?.length || 0 });
 }

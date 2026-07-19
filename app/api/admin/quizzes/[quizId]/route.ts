@@ -1,15 +1,11 @@
 import { NextResponse } from "next/server";
-import { ObjectId } from "mongodb";
 
 import { getAdminSession } from "@/lib/auth/admin-session";
 import {
-  ensureQuizIndexes,
-  ensureQuizSubmissionIndexes,
-  getQuizSubmissionsCollection,
-  getQuizzesCollection,
   setActiveQuiz,
   validateQuizDocumentInput,
 } from "@/lib/quiz/db";
+import { getSupabaseAdmin } from "@/lib/db/supabase";
 
 type RouteContext = {
   params: Promise<{ quizId: string }>;
@@ -24,7 +20,7 @@ export async function PATCH(request: Request, context: RouteContext) {
 
   const { quizId } = await context.params;
 
-  if (!ObjectId.isValid(quizId)) {
+  if (!quizId) {
     return NextResponse.json({ ok: false, message: "Invalid quiz id." }, { status: 400 });
   }
 
@@ -46,21 +42,28 @@ export async function PATCH(request: Request, context: RouteContext) {
     return NextResponse.json({ ok: false, message: validation.message }, { status: 400 });
   }
 
-  await ensureQuizIndexes();
-  const quizzes = await getQuizzesCollection();
-  const now = new Date();
-  const result = await quizzes.updateOne(
-    { _id: new ObjectId(quizId) },
-    {
-      $set: {
-        ...validation.quiz,
-        isActive: false,
-        updatedAt: now,
-      },
-    },
-  );
+  const db = getSupabaseAdmin();
+  const now = new Date().toISOString();
+  
+  const { data, error } = await db
+    .from("quizzes")
+    .update({
+      name: validation.quiz.name,
+      config: validation.quiz.config,
+      questions: validation.quiz.questions,
+      result_invite: validation.quiz.resultInvite,
+      is_active: false,
+      updated_at: now,
+    })
+    .eq("id", quizId)
+    .select("id")
+    .maybeSingle();
 
-  if (result.matchedCount === 0) {
+  if (error) {
+    return NextResponse.json({ ok: false, message: "Failed to update quiz." }, { status: 500 });
+  }
+
+  if (!data) {
     return NextResponse.json({ ok: false, message: "Quiz not found." }, { status: 404 });
   }
 
@@ -80,21 +83,24 @@ export async function DELETE(_request: Request, context: RouteContext) {
 
   const { quizId } = await context.params;
 
-  if (!ObjectId.isValid(quizId)) {
+  if (!quizId) {
     return NextResponse.json({ ok: false, message: "Invalid quiz id." }, { status: 400 });
   }
 
-  const quizObjectId = new ObjectId(quizId);
-  await Promise.all([ensureQuizIndexes(), ensureQuizSubmissionIndexes()]);
-  const quizzes = await getQuizzesCollection();
-  const submissions = await getQuizSubmissionsCollection();
-  const result = await quizzes.deleteOne({ _id: quizObjectId });
+  const db = getSupabaseAdmin();
+  const { data: deletedData, error } = await db
+    .from("quizzes")
+    .delete()
+    .eq("id", quizId)
+    .select("id");
 
-  if (result.deletedCount === 0) {
-    return NextResponse.json({ ok: false, message: "Quiz not found." }, { status: 404 });
+  if (error) {
+    return NextResponse.json({ ok: false, message: "Failed to delete quiz." }, { status: 500 });
   }
 
-  await submissions.deleteMany({ quizId: quizObjectId });
+  if (!deletedData || deletedData.length === 0) {
+    return NextResponse.json({ ok: false, message: "Quiz not found." }, { status: 404 });
+  }
 
   return NextResponse.json({ ok: true });
 }

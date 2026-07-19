@@ -6,8 +6,8 @@ import { BarChart3, LayoutDashboard, ListChecks, Trophy } from "lucide-react";
 import { ClearLeaderboardButton } from "@/components/admin/ClearLeaderboardButton";
 import { QuizPanel } from "@/components/admin/QuizPanel";
 import { getAdminSession } from "@/lib/auth/admin-session";
-import { getQuizUsersCollection } from "@/lib/auth/users";
-import { getQuizSubmissionsCollection, listQuizzes, listQuizSummaries } from "@/lib/quiz/db";
+import { getSupabaseAdmin } from "@/lib/db/supabase";
+import { listQuizzes, listQuizSummaries } from "@/lib/quiz/db";
 
 export const metadata: Metadata = {
   title: "Admin",
@@ -51,22 +51,31 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
   const hasSelectedQuizParam = Boolean(quizId);
   const fullQuizzes = activePanel === "quiz" ? await listQuizzes() : [];
   const quizSummaries = activePanel === "leaderboard" ? await listQuizSummaries() : fullQuizzes;
-  const selectedQuiz = quizSummaries.find((quiz) => quiz._id.toString() === quizId) ?? quizSummaries.find((quiz) => quiz.isActive) ?? quizSummaries[0];
+  const selectedQuiz = quizSummaries.find((quiz) => quiz.id === quizId) ?? quizSummaries.find((quiz) => quiz.isActive) ?? quizSummaries[0];
   let leaderboard: LeaderboardUser[] = [];
 
   if (activePanel === "leaderboard" && selectedQuiz) {
-    const submissions = await getQuizSubmissionsCollection();
-    const selectedSubmissions = await submissions.find({ quizId: selectedQuiz._id }).sort({ score: -1, timetaken: 1 }).toArray();
-    const userIds = selectedSubmissions.map((submission) => submission.userId);
+    const db = getSupabaseAdmin();
+    const { data: selectedSubmissions } = await db
+      .from("quiz_submissions")
+      .select("*")
+      .eq("quiz_id", selectedQuiz.id)
+      .order("score", { ascending: false })
+      .order("timetaken", { ascending: true });
 
-    if (userIds.length > 0) {
-      const users = await getQuizUsersCollection();
-      const leaderboardUsers = await users.find({ _id: { $in: userIds } }).toArray();
-      const usersById = new Map(leaderboardUsers.map((user) => [user._id.toString(), user]));
+    if (selectedSubmissions && selectedSubmissions.length > 0) {
+      const userIds = selectedSubmissions.map((submission) => submission.user_id);
+      
+      const { data: leaderboardUsers } = await db
+        .from("quiz_users")
+        .select("*")
+        .in("id", userIds);
+
+      const usersById = new Map((leaderboardUsers || []).map((user) => [user.id, user]));
 
       leaderboard = selectedSubmissions
         .map((submission) => {
-          const user = usersById.get(submission.userId.toString());
+          const user = usersById.get(submission.user_id);
 
           return user
             ? {
@@ -74,29 +83,20 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
                 usn: user.usn,
                 email: user.email,
                 phone: user.phone,
-                quizName: submission.quizName,
+                quizName: submission.quiz_name,
                 score: submission.score,
                 timetaken: submission.timetaken,
               }
             : null;
         })
-        .filter((user): user is LeaderboardUser => user !== null)
-        .sort((left, right) => {
-          const scoreDifference = right.score - left.score;
-
-          if (scoreDifference !== 0) {
-            return scoreDifference;
-          }
-
-          return left.timetaken - right.timetaken;
-        });
+        .filter((user): user is LeaderboardUser => user !== null);
     }
   }
 
   const serializedQuizzes =
     activePanel === "quiz"
       ? fullQuizzes.map((quiz) => ({
-          _id: quiz._id.toString(),
+          id: quiz.id,
           name: quiz.name,
           config: quiz.config,
           questions: quiz.questions,
@@ -169,9 +169,9 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
                 <h2>Quiz submissions</h2>
                 <form className="admin-leaderboard-filter">
                   <input type="hidden" name="panel" value="leaderboard" />
-                  <select name="quizId" defaultValue={selectedQuiz?._id.toString() ?? ""}>
+                  <select name="quizId" defaultValue={selectedQuiz?.id ?? ""}>
                     {quizSummaries.map((quiz) => (
-                      <option key={quiz._id.toString()} value={quiz._id.toString()}>
+                      <option key={quiz.id} value={quiz.id}>
                         {quiz.name}
                         {quiz.isActive ? " (active)" : ""}
                       </option>
@@ -180,7 +180,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
                   <button type="submit" className="quiz-secondary-button">View</button>
                 </form>
                 {hasSelectedQuizParam && selectedQuiz ? (
-                  <ClearLeaderboardButton quizId={selectedQuiz._id.toString()} quizName={selectedQuiz.name} />
+                  <ClearLeaderboardButton quizId={selectedQuiz.id} quizName={selectedQuiz.name} />
                 ) : null}
               </div>
               <table className="admin-leaderboard">
