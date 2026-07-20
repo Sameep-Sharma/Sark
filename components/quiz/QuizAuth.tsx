@@ -60,7 +60,7 @@ export function QuizAuth() {
   return (
     <main className="quiz-auth-page">
       <header className="quiz-auth-header">
-        <Image className="quiz-logo" src="/SARK-LOGO.png" alt="SARK" width={220} height={80} priority />
+        <Image className="quiz-logo" src="/SARK-LOGO.png" alt="SARK" width={220} height={180} priority />
       </header>
 
       <section className="quiz-auth-shell">

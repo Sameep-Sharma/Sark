@@ -149,6 +149,7 @@
   }
   html {
     @apply font-sans;
+    scrollbar-gutter: stable;
   }
 }
 
@@ -1003,7 +1004,48 @@ button {
   font-style: normal;
 }
 
+
+/* ── Home / Landing page ──────────────────────────────────── */
+.home-page {
+  position: relative;
+  min-height: 100vh;
+  background: #050505;
+}
+
+.home-header {
+  position: absolute;
+  top: 0;
+  left: 0;
+  padding: 28px 32px;
+}
+
+.home-logo-wrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.home-logo-glow {
+  position: absolute;
+  inset: -30px;
+  background: radial-gradient(ellipse at center, rgba(255, 255, 255, 0.3) 0%, rgba(255, 255, 255, 0.08) 30%, transparent 70%);
+  filter: blur(22px);
+  pointer-events: none;
+  border-radius: 50%;
+  z-index: 0;
+}
+
+.home-logo {
+  position: relative;
+  z-index: 1;
+  width: 160px;
+  height: auto;
+  filter: drop-shadow(0 0 18px rgba(255, 255, 255, 0.55)) drop-shadow(0 0 6px rgba(255, 255, 255, 0.3));
+}
+
 .quiz-auth-page {
+
   min-height: 100vh;
   padding: 0 28px 56px;
   background:
@@ -1091,7 +1133,7 @@ button {
 .quiz-auth-hero h1 {
   margin: 0;
   color: #fff7f7;
-  font-size: clamp(3.2rem, 8vw, 7.2rem);
+  font-size: clamp(2.5rem, 7vw, 5.2rem);
   font-weight: 930;
   line-height: 0.92;
 }
@@ -1107,7 +1149,7 @@ button {
 .quiz-auth-card {
   display: grid;
   gap: 22px;
-  padding: 24px;
+  padding: 29px 24px;
   border: 1px solid rgba(255, 255, 255, 0.14);
   border-left: 3px solid #e11d2e;
   background:
