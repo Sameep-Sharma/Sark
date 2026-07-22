@@ -32,7 +32,7 @@ export default function RootLayout({
             rippleThickness={0.1}
             rippleIntensityScale={1}
             speed={0.5}
-            transparent={true}
+            transparent={false}
             edgeFade={0.1}
             textOverlay={{
               text: "SARK",
@@ -42,24 +42,24 @@ export default function RootLayout({
               rippleFromText: true
             }}
           />
+          {/* Dimming overlay so content on top is more legible */}
+          <div style={{ position: 'absolute', inset: 0, backgroundColor: 'rgba(0, 0, 0, 0.6)', pointerEvents: 'none' }} />
         </div>
         <div style={{ position: 'relative', zIndex: 1 }}>
-          <main className="home-page">
-            <header className="home-header">
-              <div className="home-logo-wrap">
-                <div className="home-logo-glow" />
-                <Image
-                  src="/SARK-LOGO.png"
-                  alt="SARK"
-                  width={160}
-                  height={130}
-                  priority
-                  className="home-logo"
-                  style={{ width: "auto", height: "auto", maxWidth: 160 }}
-                />
-              </div>
-            </header>
-          </main>
+          <header className="home-header">
+            <div className="home-logo-wrap">
+              <div className="home-logo-glow" />
+              <Image
+                src="/SARK-LOGO.png"
+                alt="SARK"
+                width={160}
+                height={130}
+                priority
+                className="home-logo"
+                style={{ width: "auto", height: "auto", maxWidth: 160 }}
+              />
+            </div>
+          </header>
           <Navigation />
           {children}
         </div>

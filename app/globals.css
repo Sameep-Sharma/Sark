@@ -1036,11 +1036,11 @@ button {
 
 .home-logo-glow {
   position: absolute;
-  inset: -30px;
-  background: radial-gradient(ellipse at center, rgba(255, 255, 255, 0.3) 0%, rgba(255, 255, 255, 0.08) 30%, transparent 70%);
-  filter: blur(22px);
+  inset: 15px;
+  background: radial-gradient(ellipse at center, rgba(255, 255, 255, 0.3) 0%, rgba(255, 255, 255, 0.1) 40%, transparent 65%);
+  filter: blur(5px);
   pointer-events: none;
-  border-radius: 50%;
+  border-radius: 100%;
   z-index: 0;
 }
 
@@ -2078,4 +2078,22 @@ button {
   .quiz-result__invite img {
     justify-self: center;
   }
+}
+
+/* ── Hero Section Animations ──────────────────────────────────── */
+@keyframes float {
+  0% { transform: translateY(0px); }
+  50% { transform: translateY(-15px); }
+  100% { transform: translateY(0px); }
+}
+.animate-float {
+  animation: float 6s ease-in-out infinite;
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+.animate-blink {
+  animation: blink 1s step-end infinite;
 }
