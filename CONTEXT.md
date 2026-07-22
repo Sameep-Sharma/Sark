@@ -202,9 +202,9 @@ QuizDocument {
 
 ```ts
 QuizSubmissionDocument {
-  quizId: ObjectId
+  quizId: string
   quizName: string
-  userId: ObjectId
+  userId: string
   answers: Record<string, string>  // { questionId: selectedOptionId }
   score: number                    // Percentage 0–100 (rounded)
   correctCount: number
@@ -530,35 +530,36 @@ Sizes: `default`, `xs`, `sm`, `lg`, `icon`, `icon-xs`, `icon-sm`, `icon-lg`
 
 ## 11. Lib Layer
 
-### `lib/auth/mongodb.ts`
-MongoDB singleton client.
-- **Dev mode:** stored on `globalThis._quizMongoClientPromise` to survive HMR
-- **Prod mode:** new client per module load
-- Connection: `appName="sark-quiz"`, `maxPoolSize=5`, `serverSelectionTimeout=8s`
-- Exports: `getMongoClient()`, `getQuizDb()`
+### `lib/db/supabase.ts`
+Supabase Admin Client.
+- Uses `NEXT_PUBLIC_SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY`.
+- Session persistence is disabled since this is a stateless server environment.
+- Exports: `getSupabaseAdmin()`
 
 ---
 
 ### `lib/auth/users.ts`
-Collection: `"quiz-users-collection"`
+Table: `"quiz_users"`
 
 | Export | Description |
 |---|---|
-| `getQuizUsersCollection()` | Returns typed collection |
-| `ensureQuizUserIndexes()` | Idempotent (once per process) index creation |
+| `ensureQuizUserIndexes()` | No-op (indexes defined in SQL schema) |
 | `findQuizUserByEmail(email)` | Normalised lookup |
-| `findQuizUserById(userId)` | ObjectId lookup (validates format first) |
+| `findQuizUserById(userId)` | ID string lookup |
+| `findQuizUsersByIds(userIds)`| Batch user lookup |
+| `createQuizUser(input)` | Inserts new user |
+| `updateQuizUserScore(...)` | Denormalises score/time on user |
 | `normalizeEmail(email)` | `.trim().toLowerCase()` |
 | `normalizeUsn(usn)` | `.trim().toUpperCase()` |
 
 ---
 
 ### `lib/quiz/db.ts` (~370 lines)
-Collections: `"quizzes"`, `"quiz-submissions"`
+Tables: `"quizzes"`, `"quiz_submissions"`
 
 **Auto-seeding:**
 - `ensureDefaultQuiz()` called by `listQuizzes()`, `getActiveQuiz()`, `findQuizById()`
-- If collection is empty → reads `data/quiz.json` → inserts as first quiz (`isActive: true`)
+- If table is empty (`count === 0`) → reads `data/quiz.json` → inserts as first quiz (`isActive: true`)
 - Runs once per process via module-level promise
 
 **Key functions:**
@@ -566,10 +567,10 @@ Collections: `"quizzes"`, `"quiz-submissions"`
 | Function | Description |
 |---|---|
 | `listQuizzes()` | All quizzes sorted by `updatedAt` desc |
-| `listQuizSummaries()` | `{ _id, name, isActive }` only (for leaderboard filter) |
-| `getActiveQuiz()` | `findOne({ isActive: true })` |
-| `findQuizById(id)` | By ObjectId string |
-| `setActiveQuiz(id, isActive)` | If activating: `updateMany` others to `isActive: false` first |
+| `listQuizSummaries()` | `{ id, name, isActive }` only (for leaderboard filter) |
+| `getActiveQuiz()` | `eq("is_active", true)` |
+| `findQuizById(id)` | By UUID string |
+| `setActiveQuiz(id, isActive)` | If activating: updates others to `is_active: false` first |
 | `hasQuizStarted(quiz)` | Parses `startsAt`; if invalid → treated as started |
 | `toQuizPayload(quiz)` | Strips `answer` from questions, sets `resultInvite.image = false` |
 | `validateQuizDocumentInput(input)` | Full input validation → `{ ok, quiz }` or `{ ok, message }` |
@@ -820,14 +821,14 @@ All correct answers: option `"a"`
 ### `"server-only"` imports
 All `lib/` files that touch the database or session cookies import `"server-only"` at the top. This prevents accidental client-side bundling and will throw a build error if violated.
 
-### ObjectId Serialisation
-MongoDB `ObjectId`s are **never** passed directly to client components. They are always converted to strings with `.toString()` at the page boundary (server component / API route). This is why `admin/page.tsx` has a `serializedQuizzes` mapping step.
+### Server-Only DB Access
+Database access is restricted to the server (via service role key in `getSupabaseAdmin()`), ensuring no row level security (RLS) is needed for basic operations. Client components never talk to Supabase directly, but always go through Next.js API routes.
 
 ### Active Quiz Invariant
-At most **one** quiz should be `isActive: true` at any time. `setActiveQuiz(id, true)` runs `updateMany({ _id: { $ne: id }, isActive: true }, { $set: { isActive: false } })` first. This is **not atomic** — a theoretical TOCTOU race exists but is acceptable for this use case.
+At most **one** quiz should be `is_active: true` at any time. `setActiveQuiz(id, true)` runs a two-step update (deactivating others, then activating the target). This is **not atomic** — a theoretical TOCTOU race exists but is acceptable for this use case.
 
 ### Submission Deduplication
-The unique compound index `{ userId, quizId }` on the submissions collection is the authoritative guard. The API also checks before inserting, but the DB constraint catches race conditions.
+The unique compound index on the submissions table is the authoritative guard. The API also checks before inserting, but the DB constraint catches race conditions.
 
 ### Timing Safety
 `timingSafeEqual` is used for HMAC signature comparison and password verification. No early-exit string comparison anywhere in auth paths.
@@ -843,7 +844,7 @@ The unique compound index `{ userId, quizId }` on the submissions collection is 
 The real image URL is only used server-side (the `/quiz/result` page fetches it directly from DB).
 
 ### Seeding Pattern
-`ensureDefaultQuiz()` uses a **module-level promise** so it only runs once per process lifetime. It checks `estimatedDocumentCount()` — if any quizzes exist, skip. This means the seed quiz is only inserted into a completely empty quizzes collection.
+`ensureDefaultQuiz()` uses a **module-level promise** so it only runs once per process lifetime. It checks `count` from `quizzes` — if any quizzes exist, skip. This means the seed quiz is only inserted into a completely empty quizzes table.
 
 ### Admin CRUD Sync Pattern
 After any mutation (save / toggle / delete), the `QuizPanel` always fetches the full quiz list from the server (`GET /api/admin/quizzes`) and syncs the local state. The UI always reflects server state after mutations.
@@ -855,10 +856,10 @@ After any mutation (save / toggle / delete), the `QuizPanel` always fetches the 
 | Issue | Details |
 |---|---|
 | **Hardcoded admin credentials** | `sarktech / nrhs123` in `app/api/admin/auth/login/route.ts` lines 5–6. Move to env vars before any public deployment. |
-| **AUTH_SECRET fallback includes MONGODB_URI** | Rotating the DB connection string also invalidates all active sessions. |
+| **AUTH_SECRET fallback includes NEXT_PUBLIC_SUPABASE_URL** | Rotating the Supabase URL also invalidates all active sessions. |
 | **No landing page** | `app/page.tsx` returns `null`. No redirect exists at `"/"`. |
 | **UI copy bug** | `ClearLeaderboardButton` label says "Delete all users" but only deletes submissions. |
-| **Base64 image storage** | `resultInvite.image` is stored as a base64 data URI in MongoDB when uploaded. Bloats documents for large images. No CDN/upload service integrated. |
+| **Base64 image storage** | `resultInvite.image` is stored as a base64 data URI in PostgreSQL when uploaded. Bloats documents for large images. No CDN/upload service integrated. |
 | **No rate limiting** | Auth endpoints (`/api/quiz/auth/*`, `/api/admin/auth/*`) have no rate limiting or brute-force protection. |
 | **No middleware.ts** | Route protection is handled per-page/per-route by calling `getAdminSession()` / `getQuizSession()` manually. No centralized middleware. |
 | **framer-motion unused** | Installed as a dependency but not yet used anywhere in the codebase. |

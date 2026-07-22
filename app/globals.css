@@ -1013,10 +1013,11 @@ button {
 }
 
 .home-header {
-  position: absolute;
+  position: fixed;
   top: 0;
   left: 0;
   padding: 28px 32px;
+  z-index: 50;
 }
 
 .home-logo-wrap {

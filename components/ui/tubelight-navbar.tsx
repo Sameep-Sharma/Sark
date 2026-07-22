@@ -7,7 +7,6 @@ import Image from "next/image"
 import { usePathname } from "next/navigation"
 import { LucideIcon } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { Button as MovingBorderContainer } from "./moving-border"
 
 interface NavItem {
   name: string
@@ -52,13 +51,8 @@ export function NavBar({ items, className }: NavBarProps) {
         className,
       )}
     >
-      <MovingBorderContainer
-        as="div"
-        borderRadius="9999px"
-        containerClassName="shadow-lg rounded-full"
-        className="flex items-center gap-3 py-1 px-1 rounded-full bg-transparent border-0"
-        borderClassName="opacity-[0.8]"
-        duration={3000}
+      <div
+        className="flex items-center gap-3 py-1 px-1 shadow-lg rounded-full bg-background/50 backdrop-blur-md border border-border"
       >
         {items.map((item) => {
           const Icon = item.icon
@@ -115,7 +109,7 @@ export function NavBar({ items, className }: NavBarProps) {
             </Link>
           )
         })}
-      </MovingBorderContainer>
+      </div>
     </div>
   )
 }

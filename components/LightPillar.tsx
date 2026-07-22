@@ -17,6 +17,8 @@ export interface LightPillarProps {
   pillarHeight?: number;
   noiseIntensity?: number;
   pillarRotation?: number;
+  scrollRotationEnabled?: boolean;
+  scrollRotationFactor?: number;
   className?: string;
   style?: React.CSSProperties;
 }
@@ -138,6 +140,8 @@ function LightPillarScene({
   pillarHeight = 0.35,
   noiseIntensity = 1,
   pillarRotation = 45,
+  scrollRotationEnabled = true,
+  scrollRotationFactor = 30,
   className,
   style,
 }: LightPillarProps) {
@@ -153,12 +157,14 @@ function LightPillarScene({
   const propsRef = useRef({
     topColor, bottomColor, intensity, rotationSpeed, interactive,
     glowAmount, pillarWidth, pillarHeight, noiseIntensity, pillarRotation,
+    scrollRotationEnabled, scrollRotationFactor,
   });
 
   // Keep props ref in sync so the animation loop always uses latest values
   propsRef.current = {
     topColor, bottomColor, intensity, rotationSpeed, interactive,
     glowAmount, pillarWidth, pillarHeight, noiseIntensity, pillarRotation,
+    scrollRotationEnabled, scrollRotationFactor,
   };
 
   // Reduced motion
@@ -188,6 +194,25 @@ function LightPillarScene({
     container.addEventListener('pointermove', handlePointerMove, { passive: true });
     return () => container.removeEventListener('pointermove', handlePointerMove);
   }, [interactive, handlePointerMove]);
+
+  // Scroll rotation refs and listener
+  const scrollTargetRef = useRef(0);
+  const currentScrollRef = useRef(0);
+
+  useEffect(() => {
+    if (!scrollRotationEnabled || reducedMotion) return;
+
+    const handleScroll = () => {
+      // We calculate scroll relative to viewport height so the factor is exactly 'degrees per 100vh'
+      const scrollTop = window.scrollY || document.documentElement.scrollTop;
+      const winHeight = window.innerHeight || 1;
+      scrollTargetRef.current = scrollTop / winHeight;
+    };
+
+    handleScroll();
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [scrollRotationEnabled, reducedMotion]);
 
   // Main WebGL setup + animation loop
   useEffect(() => {
@@ -233,23 +258,23 @@ function LightPillarScene({
       vertexShader: VERTEX_SHADER,
       fragmentShader: FRAGMENT_SHADER,
       uniforms: {
-        uTime:           { value: 0 },
-        uResolution:     { value: new THREE.Vector2(width, height) },
-        uMouse:          { value: mouseRef.current },
-        uTopColor:       { value: hexToVec3(topColor) },
-        uBottomColor:    { value: hexToVec3(bottomColor) },
-        uIntensity:      { value: intensity },
-        uInteractive:    { value: interactive },
-        uGlowAmount:     { value: glowAmount },
-        uPillarWidth:    { value: pillarWidth },
-        uPillarHeight:   { value: pillarHeight },
+        uTime: { value: 0 },
+        uResolution: { value: new THREE.Vector2(width, height) },
+        uMouse: { value: mouseRef.current },
+        uTopColor: { value: hexToVec3(topColor) },
+        uBottomColor: { value: hexToVec3(bottomColor) },
+        uIntensity: { value: intensity },
+        uInteractive: { value: interactive },
+        uGlowAmount: { value: glowAmount },
+        uPillarWidth: { value: pillarWidth },
+        uPillarHeight: { value: pillarHeight },
         uNoiseIntensity: { value: noiseIntensity },
-        uRotCos:         { value: 1.0 },
-        uRotSin:         { value: 0.0 },
-        uPillarRotCos:   { value: Math.cos(pillarRotRad) },
-        uPillarRotSin:   { value: Math.sin(pillarRotRad) },
-        uWaveSin:        { value: Math.sin(0.4) },
-        uWaveCos:        { value: Math.cos(0.4) },
+        uRotCos: { value: 1.0 },
+        uRotSin: { value: 0.0 },
+        uPillarRotCos: { value: Math.cos(pillarRotRad) },
+        uPillarRotSin: { value: Math.sin(pillarRotRad) },
+        uWaveSin: { value: Math.sin(0.4) },
+        uWaveCos: { value: Math.cos(0.4) },
       },
       transparent: true,
       depthWrite: false,
@@ -284,21 +309,39 @@ function LightPillarScene({
       }
       const t = timeRef.current;
 
+      // Lerp scroll
+      if (p.scrollRotationEnabled && !reducedMotion) {
+        currentScrollRef.current += (scrollTargetRef.current - currentScrollRef.current) * (1 - Math.exp(-5.0 * delta));
+      } else {
+        currentScrollRef.current = scrollTargetRef.current; // No easing for reduced motion/disabled
+      }
+
+      // Calculate rotation: idle only (remove scroll-linked axial twist)
+      const idleRotRad = t * 0.3;
+
       // Update all uniforms from current props
       const u = mat.uniforms;
-      u.uTime.value           = t;
-      u.uRotCos.value         = Math.cos(t * 0.3);
-      u.uRotSin.value         = Math.sin(t * 0.3);
+      u.uTime.value = t;
+      u.uRotCos.value = Math.cos(idleRotRad);
+      u.uRotSin.value = Math.sin(idleRotRad);
       u.uTopColor.value.copy(hexToVec3(p.topColor));
       u.uBottomColor.value.copy(hexToVec3(p.bottomColor));
-      u.uIntensity.value      = p.intensity;
-      u.uInteractive.value    = p.interactive;
-      u.uGlowAmount.value     = p.glowAmount;
-      u.uPillarWidth.value    = p.pillarWidth;
-      u.uPillarHeight.value   = p.pillarHeight;
+      u.uIntensity.value = p.intensity;
+      u.uInteractive.value = p.interactive;
+      u.uGlowAmount.value = p.glowAmount;
+
+      // Scroll interpolation: both stop exactly at the same time (e.g., 1.5 viewport heights)
+      const progress = Math.min(Math.max(currentScrollRef.current / 1.5, 0), 1.0);
+      
+      // Width expands to the final state
+      const targetWidth = 10.0;
+      u.uPillarWidth.value = p.pillarWidth + (targetWidth - p.pillarWidth) * progress;
+      u.uPillarHeight.value = p.pillarHeight;
       u.uNoiseIntensity.value = p.noiseIntensity;
 
-      const rad = (p.pillarRotation * Math.PI) / 180;
+      // Rotation goes from initial (e.g., 45) to 0 (vertical)
+      const currentRotDeg = p.pillarRotation * (1.0 - progress);
+      const rad = (currentRotDeg * Math.PI) / 180;
       u.uPillarRotCos.value = Math.cos(rad);
       u.uPillarRotSin.value = Math.sin(rad);
 
