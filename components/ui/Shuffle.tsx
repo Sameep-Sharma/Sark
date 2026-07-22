@@ -59,15 +59,15 @@ export const Shuffle: React.FC<ShuffleProps> = ({
   respectReducedMotion = true,
   triggerOnHover = true
 }) => {
-  const ref = useRef(null);
+  const ref = useRef<HTMLElement | null>(null);
   const [fontsLoaded, setFontsLoaded] = useState(false);
   const [ready, setReady] = useState(false);
 
-  const splitRef = useRef(null);
-  const wrappersRef = useRef([]);
-  const tlRef = useRef(null);
+  const splitRef = useRef<any>(null);
+  const wrappersRef = useRef<HTMLElement[]>([]);
+  const tlRef = useRef<gsap.core.Timeline | null>(null);
   const playingRef = useRef(false);
-  const hoverHandlerRef = useRef(null);
+  const hoverHandlerRef = useRef<((e: Event) => void) | null>(null);
 
   useEffect(() => {
     if ('fonts' in document) {
