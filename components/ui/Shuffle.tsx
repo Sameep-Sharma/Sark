@@ -1,6 +1,5 @@
 "use client";
-// @ts-nocheck
-import React, { useRef, useEffect, useState, useMemo } from 'react';
+import React, { useRef, useEffect, useState, useMemo, CSSProperties } from 'react';
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { SplitText as GSAPSplitText } from 'gsap/SplitText';
@@ -9,7 +8,33 @@ import './Shuffle.css';
 
 gsap.registerPlugin(ScrollTrigger, GSAPSplitText, useGSAP);
 
-export const Shuffle = ({
+interface ShuffleProps {
+  text: string;
+  className?: string;
+  style?: CSSProperties;
+  shuffleDirection?: string;
+  duration?: number;
+  maxDelay?: number;
+  ease?: string;
+  threshold?: number;
+  rootMargin?: string;
+  tag?: string;
+  textAlign?: string;
+  onShuffleComplete?: () => void;
+  shuffleTimes?: number;
+  animationMode?: string;
+  loop?: boolean;
+  loopDelay?: number;
+  stagger?: number;
+  scrambleCharset?: string;
+  colorFrom?: string;
+  colorTo?: string;
+  triggerOnce?: boolean;
+  respectReducedMotion?: boolean;
+  triggerOnHover?: boolean;
+}
+
+export const Shuffle: React.FC<ShuffleProps> = ({
   text,
   className = '',
   style = {},
@@ -19,7 +44,7 @@ export const Shuffle = ({
   ease = 'power3.out',
   threshold = 0.1,
   rootMargin = '-100px',
-  tag = 'span', // changed default to span for inline text replacement
+  tag = 'span',
   textAlign = 'left',
   onShuffleComplete,
   shuffleTimes = 1,
