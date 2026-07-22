@@ -2,8 +2,7 @@ import type { Metadata } from "next";
 import { Navigation } from "@/components/navigation";
 import "./globals.css";
 import Image from "next/image";
-import LightPillar from "@/components/LightPillar";
-
+import PixelBlast from "@/components/PixelBlast";
 
 export const metadata: Metadata = {
   title: {
@@ -21,18 +20,29 @@ export default function RootLayout({
   return (
     <html lang="en" className="dark h-full antialiased">
       <body className="min-h-full bg-black text-sark-ink">
-        <LightPillar
-          topColor="#ff272c"
-          bottomColor="#ff9fa9"
-          intensity={1}
-          rotationSpeed={0.6}
-          interactive={false}
-          glowAmount={0.002}
-          pillarWidth={6.5}
-          pillarHeight={0.35}
-          noiseIntensity={1}
-          pillarRotation={45}
-        />
+        <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', zIndex: 0 }}>
+          <PixelBlast
+            variant="square"
+            pixelSize={3}
+            color="#f84242"
+            patternScale={2}
+            patternDensity={0.9}
+            enableRipples={true}
+            rippleSpeed={0.3}
+            rippleThickness={0.1}
+            rippleIntensityScale={1}
+            speed={0.5}
+            transparent={true}
+            edgeFade={0.1}
+            textOverlay={{
+              text: "SARK",
+              fontFamily: "SarkTitle, sans-serif",
+              fontSizeVW: 18,
+              maskMode: "fill",
+              rippleFromText: true
+            }}
+          />
+        </div>
         <div style={{ position: 'relative', zIndex: 1 }}>
           <main className="home-page">
             <header className="home-header">

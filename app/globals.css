@@ -8,6 +8,13 @@
 }
 
 @font-face {
+  font-family: 'SarkTitle';
+  src: url('/fonts/batmfa__.ttf') format('truetype');
+  font-display: swap;
+}
+
+
+@font-face {
   font-family: "BatmanForeverOutline";
   src: url("/fonts/batmfo__.ttf") format("truetype");
   font-weight: 400;
