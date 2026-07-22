@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 /**
  * Props for the FreelancerProfileCard component.
  */
-interface FreelancerProfileCardProps extends React.HTMLAttributes<HTMLDivElement> {
+interface FreelancerProfileCardProps extends Omit<React.HTMLAttributes<HTMLDivElement>, "onDrag" | "onDragStart" | "onDragEnd" | "onAnimationStart"> {
   /** The user's full name. */
   name: string;
   /** The user's job title or role. */
