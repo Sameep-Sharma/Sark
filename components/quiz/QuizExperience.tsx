@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { AlertTriangle, ArrowLeft, ArrowRight, Check, Clock3, Loader2, Play } from "lucide-react";
 
 import type { QuizPayload } from "@/lib/quiz/types";
+import { LumaSpin } from "@/components/ui/luma-spin";
 
 type StoredQuizAttempt = {
   hasStarted: boolean;
@@ -490,9 +491,9 @@ function VerticalProgress({
 
 function QuizLoading({ message }: { message: string }) {
   return (
-    <section className="quiz-loading">
-      <span>{message}</span>
-      <div aria-hidden="true" />
+    <section className="quiz-loading flex flex-col items-center justify-center gap-4 py-12">
+      <LumaSpin />
+      <span className="text-xs uppercase tracking-widest text-neutral-400 font-mono">{message}</span>
     </section>
   );
 }

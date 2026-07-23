@@ -495,6 +495,7 @@ const PixelBlast: React.FC<PixelBlastProps> = ({
       });
       renderer.domElement.style.width = '100%';
       renderer.domElement.style.height = '100%';
+      renderer.domElement.style.pointerEvents = 'none';
       renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
       container.appendChild(renderer.domElement);
       if (transparent) renderer.setClearAlpha(0);
@@ -644,10 +645,10 @@ const PixelBlast: React.FC<PixelBlastProps> = ({
         const { fx, fy, w, h } = mapToPixels(e);
         touch.addTouch({ x: fx / w, y: fy / h });
       };
-      renderer.domElement.addEventListener('pointerdown', onPointerDown, {
+      window.addEventListener('pointerdown', onPointerDown, {
         passive: true
       });
-      renderer.domElement.addEventListener('pointermove', onPointerMove, {
+      window.addEventListener('pointermove', onPointerMove, {
         passive: true
       });
       let raf = 0;
@@ -701,7 +702,9 @@ const PixelBlast: React.FC<PixelBlastProps> = ({
         composer,
         touch,
         liquidEffect,
-        updateTextMask
+        updateTextMask,
+        onPointerDown,
+        onPointerMove
       };
       
       // Initial text mask setup
@@ -742,6 +745,8 @@ const PixelBlast: React.FC<PixelBlastProps> = ({
       const t = threeRef.current;
       t.resizeObserver?.disconnect();
       cancelAnimationFrame(t.raf);
+      window.removeEventListener('pointerdown', t.onPointerDown);
+      window.removeEventListener('pointermove', t.onPointerMove);
       t.quad?.geometry.dispose();
       t.material.dispose();
       t.composer?.dispose();

@@ -4,6 +4,7 @@ import { useState, type FormEvent } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { ArrowRight, LockKeyhole, UserRound } from "lucide-react";
+import { SmoothInput } from "@/components/ui/smooth-input";
 
 type AdminAuthResponse = {
   ok: boolean;
@@ -59,14 +60,14 @@ export function AdminLogin() {
             <span>Username</span>
             <div>
               <UserRound />
-              <input name="username" type="text" autoComplete="username" required />
+              <SmoothInput name="username" type="text" autoComplete="username" required />
             </div>
           </label>
           <label>
             <span>Password</span>
             <div>
               <LockKeyhole />
-              <input name="password" type="password" autoComplete="current-password" required />
+              <SmoothInput name="password" type="password" autoComplete="current-password" required />
             </div>
           </label>
 

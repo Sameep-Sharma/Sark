@@ -1,4 +1,4 @@
-# SARK Quiz Platform — Full Codebase Context
+# SARK — Full Codebase Context
 
 > Read this before touching any code. This document captures the complete architecture, data models, API surface, component behaviour, and design decisions as of July 2026.
 
@@ -6,19 +6,22 @@
 
 ## 1. Project Overview
 
-**SARK** is the tech club of a college (NRHS / Himalay-NRHS). This web platform is the club's quiz and technical screening tool.
+**SARK** is the tech club of a college (NRHS / Himalay-NRHS). This web platform serves as the club's public website and its quiz/technical screening tool.
 
 ### Purpose
+- **Public-facing website** with a visually rich landing page, team roster, and timeline.
 - Run **timed, multiple-choice technical quizzes** for candidate screening.
 - Let **admins** create, manage, and activate quizzes through a control panel.
 - Collect submissions, **grade them server-side**, and show a ranked leaderboard.
 - Show candidates a **result/confirmation page** with an optional invite (e.g. WhatsApp QR) after submission.
 
 ### Current State
-- Fully functional end-to-end: `signup → quiz → submission → result`.
+- **Landing page** (`/`) — full hero section with WebGL animated background (PixelBlast), text shuffle animation, and flagship events section.
+- **Team page** (`/team`) — developer profile cards organised by year.
+- **Timeline page** (`/timeline`) — scroll-animated timeline component.
+- Quiz flow fully functional: `signup → quiz → submission → result`.
 - Admin panel: create / edit / delete / activate quizzes + view leaderboard.
-- No public landing page (`app/page.tsx` returns `null`).
-- Deployed on **Next.js 16** with **Supabase (PostgreSQL)**.
+- Deployed on **Next.js 16** with **Supabase (PostgreSQL)** and **Vercel**.
 
 ---
 
@@ -29,23 +32,25 @@
 | Framework | Next.js 16.2.6 (App Router, RSC-first) |
 | Language | TypeScript 6 (strict mode) |
 | Runtime | Node.js (server-only modules used throughout) |
-| Database | Supabase (PostgreSQL) via @supabase/supabase-js |
-| Styling | Tailwind CSS v4 + tw-animate-css + shadcn (base-nova style) |
+| Database | Supabase (PostgreSQL) via `@supabase/supabase-js` |
+| Styling | Tailwind CSS v4 + `tw-animate-css` + shadcn (base-nova style) |
 | UI Primitives | `@base-ui/react` (headless components) |
 | Icons | `lucide-react` |
-| Animations | `framer-motion` (installed, not yet widely used) |
-| Font | **BatmanForever** (regular `batmfa__.ttf`) + **BatmanForeverOutline** (`batmfo__.ttf`) — served from `public/fonts/`. IBM Plex Mono kept for mono. |
-| Component lib | shadcn v4 — only `Button` is scaffolded so far |
+| 3D / WebGL | `three` + `@react-three/fiber` + `@react-three/drei` + `postprocessing` |
+| Animations (GSAP) | `gsap` + `@gsap/react` (ScrollTrigger, SplitText) |
+| Animations (Framer) | `framer-motion` / `motion` |
+| Font | **BatmanForever** (regular `batmfa__.ttf`) + **BatmanForeverOutline** (`batmfo__.ttf`) — `public/fonts/`. Also aliased as `SarkTitle`. |
+| Component lib | shadcn v4 — `Button` and `Avatar` scaffolded |
 | Path alias | `@/*` → project root |
 
-> **Note:** Most UI uses hand-written BEM-style CSS classes in `globals.css`. The shadcn `Button` component exists but is rarely used — raw HTML buttons with custom CSS are the norm.
+> **Note:** The project uses both GSAP and Framer Motion for animations. GSAP powers the Shuffle text effect and PillNav; Framer Motion is used in profile cards, navbar, and wobble cards.
 
 ---
 
 ## 3. Environment Variables
 
 **Setup:** Create `.env.local` in the project root (gitignored, never committed).
-A committed template lives at [`.env.example`](file:///d:/Vs%20code/Sark/.env.example).
+A committed template lives at `.env.example`.
 
 ```
 NEXT_PUBLIC_SUPABASE_URL # Required. Supabase project URL.
@@ -75,9 +80,9 @@ Password: nrhs123
 ```
 sark/
 ├── app/
-│   ├── globals.css              Global design system + all BEM component styles (~2 000 lines)
-│   ├── layout.tsx               Root layout: dark class, bg-sark-black, text-sark-ink
-│   ├── page.tsx                 "/" — returns null (no landing page yet)
+│   ├── globals.css              Global design system + all BEM component styles (~2100 lines)
+│   ├── layout.tsx               Root layout: PixelBlast background, logo header, Navigation
+│   ├── page.tsx                 "/" — Landing page: hero + flagship events
 │   │
 │   ├── admin/
 │   │   ├── page.tsx             Admin dashboard (SSR, auth-gated). Panels: quiz | leaderboard
@@ -90,6 +95,12 @@ sark/
 │   │   │   └── page.tsx         Quiz login/signup (SSR, redirects if already authenticated)
 │   │   └── result/
 │   │       └── page.tsx         Post-submission confirmation page with optional invite
+│   │
+│   ├── team/
+│   │   └── page.tsx             Team page — profile cards grouped by year (client component)
+│   │
+│   ├── timeline/
+│   │   └── page.tsx             Timeline page — scroll-animated timeline (SSR)
 │   │
 │   └── api/
 │       ├── quiz/
@@ -110,15 +121,35 @@ sark/
 │                       └── route.ts       DELETE: clear leaderboard for a quiz
 │
 ├── components/
+│   ├── PixelBlast.tsx             WebGL pixel grid background (Three.js + postprocessing, ~790 lines)
+│   ├── PixelBlast.css             PixelBlast canvas styles
+│   ├── Shuffle.css                Shuffle text animation styles (standalone, not in ui/)
+│   ├── navigation.tsx             Navigation wrapper — renders NavBar with route items
+│   ├── flagship-events.tsx        Flagship Events section (3 WobbleCards with images)
+│   ├── timeline-demo.tsx          Timeline demo component (unused, reference implementation)
+│   ├── wobble-card-demo.tsx       WobbleCard demo (unused, reference implementation)
+│   │
 │   ├── admin/
 │   │   ├── AdminLogin.tsx         Admin login form (client component)
 │   │   ├── ClearLeaderboardButton.tsx  Delete all submissions for a quiz (client)
 │   │   └── QuizPanel.tsx          Full quiz CRUD editor panel (client, ~560 lines)
+│   │
 │   ├── quiz/
 │   │   ├── QuizAuth.tsx           Login / signup switcher form (client)
 │   │   └── QuizExperience.tsx     Complete quiz-taking UI (client, ~510 lines)
+│   │
 │   └── ui/
-│       └── button.tsx             shadcn Button using @base-ui/react, CVA variants
+│       ├── Shuffle.tsx            GSAP-powered text shuffle animation (~420 lines)
+│       ├── Shuffle.css            Shuffle component styles
+│       ├── avatar.tsx             shadcn Avatar (Radix primitives)
+│       ├── button.tsx             shadcn Button using @base-ui/react, CVA variants
+│       ├── freelancer-profile-card.tsx  Animated team member card (Framer Motion)
+│       ├── moving-border.tsx      Moving border animation component
+│       ├── pill-nav.tsx           GSAP-powered pill-style navigation bar (~370 lines)
+│       ├── timeline.tsx           Scroll-animated timeline (Framer Motion + useScroll)
+│       ├── tubelight-navbar.tsx   Active navigation bar with tubelight glow effect (Framer Motion)
+│       ├── tubelight-navbar-demo.tsx  NavBar demo component
+│       └── wobble-card.tsx        Interactive wobble/tilt card effect
 │
 ├── lib/
 │   ├── utils.ts                   cn() helper (clsx + tailwind-merge)
@@ -126,7 +157,10 @@ sark/
 │   │   ├── session.ts             Quiz user session: HMAC-SHA256 cookie tokens, 6h TTL
 │   │   ├── admin-session.ts       Admin session: HMAC-SHA256 cookie tokens, 8h TTL
 │   │   ├── users.ts               QuizUser collection helpers
-│   │   └── password.ts            PBKDF2-SHA512 hashing + verification
+│   │   ├── password.ts            PBKDF2-SHA512 hashing + verification
+│   │   └── mongodb.ts             Legacy file (unused, 1 line)
+│   ├── db/
+│   │   └── supabase.ts            Supabase admin client (server-only)
 │   └── quiz/
 │       ├── types.ts               Shared TypeScript types for quiz domain
 │       ├── db.ts                  All quiz DB operations + validation logic (~370 lines)
@@ -135,11 +169,20 @@ sark/
 ├── data/
 │   └── quiz.json                  Default seed quiz. Auto-seeded if DB is empty on first access.
 │
+├── temp/
+│   ├── timeline-data.tsx          Timeline data used by /timeline page
+│   └── image.png                  Scratch image file
+│
+├── supabase/
+│   └── schema.sql                 PostgreSQL schema (3 tables + indexes + RLS)
+│
 └── public/
     ├── fonts/
-    │   ├── batmfa__.ttf         BatmanForever regular — served at /fonts/batmfa__.ttf
-    │   └── batmfo__.ttf         BatmanForever outline — served at /fonts/batmfo__.ttf
-    └── SARK-LOGO.png              Club logo used on every page
+    │   ├── batmfa__.ttf         BatmanForever regular
+    │   └── batmfo__.ttf         BatmanForever outline
+    ├── SARK-LOGO.png              Club logo
+    ├── Gemini_Generated_Image_amlky9amlky9amlk.png  Generated hero image
+    └── image-10.png               Additional image asset
 ```
 
 ---
@@ -318,7 +361,7 @@ Body: `{ answers: Record<string,string>, startedAt?: number, quizId?: string }`
 - Checks for existing submission → `409` if found
 - Validates answers server-side (strips invalid question/option IDs)
 - Calculates `score` (%), `timetaken` (seconds, capped at duration)
-- Inserts into `quiz-submissions` (unique index catches race conditions)
+- Inserts into `quiz_submissions` (unique index catches race conditions)
 - Denormalises `score / timetaken / latestQuizId / latestQuizName` onto user document
 - Returns `{ ok, score, timetaken, quizId, quizName }`
 
@@ -337,7 +380,7 @@ Body: `{ answers: Record<string,string>, startedAt?: number, quizId?: string }`
 
 | Route | Method | Auth | Behaviour |
 |---|---|---|---|
-| `/api/admin/quizzes` | GET | Admin | Returns all quizzes (`_id` as string). |
+| `/api/admin/quizzes` | GET | Admin | Returns all quizzes. |
 | `/api/admin/quizzes` | POST | Admin | Creates quiz. Always inserted as `isActive=false`, then `setActiveQuiz()` called if body requests it. Returns `{ ok, quizId }`. |
 | `/api/admin/quizzes/[quizId]` | PATCH | Admin | Two modes: (A) `{ isActive: boolean }` — toggle active only; (B) full quiz body — full update. `setActiveQuiz()` deactivates all others when activating. |
 | `/api/admin/quizzes/[quizId]` | DELETE | Admin | Deletes quiz document AND all its submissions. `404` if not found. |
@@ -347,8 +390,25 @@ Body: `{ answers: Record<string,string>, startedAt?: number, quizId?: string }`
 
 ## 9. Pages — Routing & Behaviour
 
-### `/` — `app/page.tsx`
-Returns `null`. No content. Placeholder for a future landing page.
+### `/` — Landing Page (`app/page.tsx`)
+Renders the public-facing homepage with:
+- **Hero section:** Full-screen layout with a two-column grid: left column has "Welcome" badge, animated heading with Shuffle text effect ("Innovation" shuffles on scroll/hover), and a "Member's Login" CTA linking to `/login`. Right column shows a floating image.
+- **Flagship Events:** Three WobbleCard components showcasing "Annual Hackathon", "Tech Symposium", and "Design Workshop" with Unsplash images.
+- **Background:** PixelBlast WebGL canvas (rendered in layout) with SARK text overlay and dimming overlay.
+
+---
+
+### `/team` — Team Page (`app/team/page.tsx`)
+Client component. Renders team members grouped by year (4th → 1st) using `FreelancerProfileCard` components. Each card displays:
+- Avatar, name, title, banner image
+- Experience duration, project count
+- Tool icons (from lucide-react)
+- Animated entrance with Framer Motion
+
+---
+
+### `/timeline` — Timeline Page (`app/timeline/page.tsx`)
+SSR. Renders a `Timeline` component using data from `temp/timeline-data.tsx`. The timeline uses Framer Motion's `useScroll` for scroll-driven animations with year markers.
 
 ---
 
@@ -374,7 +434,6 @@ Otherwise            → <QuizExperience attemptStorageKey="sark-quiz-attempt:{u
 SSR. Protected.
 - Shows `CheckCircle2` confirmation + optional `ResultInvite` card.
 - Fetches the user's most recent submission to pull the quiz's `resultInvite`.
-- If the invite has a `title`, `description`, or `image`, the card is shown.
 
 ---
 
@@ -403,6 +462,133 @@ SSR. Protected. URL params: `?panel=quiz|leaderboard&quizId=<id>`
 
 ## 10. Components — Detailed Reference
 
+### Root Layout (`app/layout.tsx`)
+
+Renders the global shell:
+1. **PixelBlast** — fullscreen fixed WebGL background (`variant="square"`, red color, SARK text overlay)
+2. **Dimming overlay** — `rgba(0, 0, 0, 0.6)` over the canvas for legibility
+3. **Header** — SARK logo image (160px)
+4. **Navigation** — Tubelight navbar (Home, About, Team, Alumni, Achievements, Timeline)
+5. **`{children}`** — page content
+
+---
+
+### `components/PixelBlast.tsx` — CLIENT (~790 lines)
+
+Full WebGL pixel grid effect built with raw Three.js (not React Three Fiber). Features:
+- **Custom GLSL fragment shader** with configurable pixel patterns (square, circle, triangle, diamond)
+- **Touch/mouse interaction** — ripple trail texture that follows cursor
+- **Text overlay** — renders text via Canvas2D as a texture, supports `cutout`, `fill`, `outline` mask modes
+- **Ripple effects** — configurable speed, thickness, and intensity
+- **Edge fade** and **noise** for organic look
+- **Auto-pauses** when offscreen via IntersectionObserver
+- Uses `postprocessing` EffectComposer for post-processing pipeline
+
+Key props: `variant`, `pixelSize`, `color`, `enableRipples`, `speed`, `textOverlay`, `transparent`, `edgeFade`
+
+---
+
+### `components/ui/Shuffle.tsx` — CLIENT (~420 lines)
+
+GSAP-powered character shuffle/slot-machine text animation. Uses `// @ts-nocheck` for internal GSAP DOM manipulation while exporting a typed `ShuffleProps` interface.
+
+**Features:**
+- Splits text into individual characters using GSAP `SplitText`
+- Animates characters with configurable direction (`left`, `right`, `up`, `down`)
+- Supports `evenodd` and `random` animation modes
+- Scroll-triggered with configurable threshold/rootMargin
+- Hover re-trigger support
+- Color transitions (`colorFrom` → `colorTo`)
+- Scramble characters via `scrambleCharset`
+- Respects `prefers-reduced-motion`
+- Loop mode with configurable delay
+
+Key props: `text`, `shuffleDirection`, `duration`, `animationMode`, `shuffleTimes`, `stagger`, `triggerOnHover`, `triggerOnce`
+
+---
+
+### `components/ui/tubelight-navbar.tsx` — CLIENT
+
+Framer Motion animated navigation bar with:
+- Active tab indicator with glowing tubelight effect
+- Path-aware active state detection
+- Responsive: full labels on desktop, icons-only on mobile
+- Fixed position at bottom of viewport
+
+Used by `components/navigation.tsx` which provides the nav items:
+```
+Home (/), About (/about), Team (/team), Alumni (/alumni), Achievements (/achievements), Timeline (/timeline)
+```
+
+---
+
+### `components/ui/freelancer-profile-card.tsx` — CLIENT
+
+Framer Motion animated team member card with:
+- Banner image, avatar with fallback initials
+- Rating stars, duration, rate stats with dividers
+- Tool icons row
+- "Get in touch" and bookmark action buttons
+- Entrance animation (`opacity: 0, y: 20` → visible)
+- Hover scale effect
+- Staggered children animation
+
+> Note: Interface extends `Omit<React.HTMLAttributes<HTMLDivElement>, "onDrag" | "onDragStart" | "onDragEnd" | "onAnimationStart">` to avoid conflicts with Framer Motion's event types.
+
+---
+
+### `components/ui/wobble-card.tsx` — CLIENT
+
+Interactive card with mouse-tracking tilt/wobble effect:
+- Tracks mouse position relative to card
+- Applies `rotateX/rotateY` transforms based on cursor offset
+- Spring-based return to neutral on mouse leave
+- Noise texture overlay for visual depth
+
+---
+
+### `components/ui/timeline.tsx` — CLIENT
+
+Scroll-animated vertical timeline using Framer Motion:
+- `useScroll` tracks scroll progress through a container ref
+- Animated height indicator line that grows with scroll
+- Content sections with title markers and arbitrary React children
+
+---
+
+### `components/ui/pill-nav.tsx` — CLIENT (~370 lines)
+
+GSAP-powered navigation bar with pill-shaped active indicator:
+- Measures link positions and sizes to animate a background pill
+- Hover preview pill animation
+- Responsive with mobile hamburger menu support
+- Optional logo image
+- Configurable colors (`baseColor`, `pillColor`, `pillTextColor`)
+
+> Currently not used in production — tubelight-navbar is the active nav implementation.
+
+---
+
+### `components/ui/moving-border.tsx` — CLIENT
+
+Animated border effect component using Framer Motion:
+- SVG-based moving gradient that animates around an element's border
+- Configurable duration, colors, and border radius
+- Can wrap any children content
+
+---
+
+### `components/flagship-events.tsx` — SERVER
+
+Three WobbleCards in a responsive grid:
+1. **Annual Hackathon** (2-col span) — innovation theme
+2. **Tech Symposium** (1-col) — keynote/workshop theme
+3. **Design Workshop** (3-col span) — UI/UX theme
+
+Each card has heading, description, and a blended Unsplash image.
+
+---
+
 ### `components/quiz/QuizAuth.tsx` — CLIENT
 
 State: `mode ("login"|"signup")`, `isSubmitting`, `message`
@@ -413,8 +599,6 @@ State: `mode ("login"|"signup")`, `isSubmitting`, `message`
 | Signup | name, usn, email, phone, password | `POST /api/quiz/auth/signup` |
 
 On success: `router.replace("/quiz")` + `router.refresh()`
-
-**CSS classes:** `.quiz-auth-page`, `.quiz-auth-header`, `.quiz-auth-shell`, `.quiz-auth-hero`, `.quiz-auth-hero__badge`, `.quiz-auth-card`, `.quiz-auth-switch`, `.quiz-auth-fields`, `.quiz-auth-input`, `.quiz-auth-error`, `.quiz-auth-submit`
 
 ---
 
@@ -446,41 +630,13 @@ Props: `{ attemptStorageKey: string }`
 - Auto-submits when remaining time hits 0
 - CSS custom property `--timer-progress` (0–1) drives the bottom progress bar width
 
-**Unattended warning:**
-- Clicking "Finish" with unanswered questions shows a warning modal
-- User can go back or "Submit anyway"
-
-**Already submitted (409 response):**
-- Removes localStorage entry
-- Shows `<QuizAlreadySubmittedOverlay />`
-- Auto-redirects to `"/"` after 20 seconds
-
-**Sub-components (all in same file):**
-
-| Name | Description |
-|---|---|
-| `QuizAlreadySubmitted` | Exported. Used by `app/quiz/page.tsx` for SSR-detected duplicate state. |
-| `QuizAlreadySubmittedOverlay` | Internal overlay panel (role=alert, live region). |
-| `QuizTimer` | Fixed countdown widget. Urgent red when ≤60s. |
-| `VerticalProgress` | Side diamond progress indicators. |
-| `QuizLoading` | Loading / error message section with animated line. |
-
----
-
-### `components/admin/AdminLogin.tsx` — CLIENT
-
-Form: `username + password` → `POST /api/admin/auth/login`
-On success: `router.replace("/admin")` + `router.refresh()`
-
-**CSS:** `.admin-login-page`, `.admin-login-panel`, `.admin-login-form`
-
 ---
 
 ### `components/admin/QuizPanel.tsx` — CLIENT (~560 lines)
 
 Props: `{ initialQuizzes: AdminQuiz[] }`
 
-State: `quizzes[]`, `editingId`, `draft` (current form state), `message`, `isSaving`, `activeUpdatingId`, `deletingId`
+State: `quizzes[]`, `editingId`, `draft`, `message`, `isSaving`, `activeUpdatingId`, `deletingId`
 
 **Operations:**
 
@@ -492,27 +648,12 @@ State: `quizzes[]`, `editingId`, `draft` (current form state), `message`, `isSav
 | Toggle active | `PATCH /api/admin/quizzes/[id]` with `{ isActive: !current }` | |
 | Delete quiz | `DELETE /api/admin/quizzes/[id]` | `window.confirm` first |
 
-**Form fields:**
-- Quiz name, title, duration (minutes → seconds), start date/time (`datetime-local`)
-- Description (textarea), rules (textarea, one per line)
-- Result invite: title, description, image (file upload → base64 data URI)
-- Questions (dynamic list): id, category, difficulty, correct option, prompt, description, 4 option labels (A/B/C/D)
-- "Make active after save" checkbox
-
-**Helper functions (in-file):**
-- `cloneQuiz()` — deep clone via `JSON.parse(JSON.stringify(…))`
-- `serializeDraft()` — converts `datetime-local` → ISO string before sending
-- `toDateTimeInputValue()` — ISO → `datetime-local` input (applies local timezone offset)
-- `readFileAsDataUrl()` — `FileReader` Promise wrapper
-- `Field()` — reusable labelled input component
-
 ---
 
 ### `components/admin/ClearLeaderboardButton.tsx` — CLIENT
 
 Props: `{ quizId: string; quizName: string }`
 - `window.confirm` → `DELETE /api/admin/quizzes/[quizId]/submissions`
-- Only rendered when a `quizId` param is in the URL (explicit selection)
 
 > ⚠️ **UI copy bug:** Button label says "Delete all users" but it only deletes submissions.
 
@@ -524,8 +665,6 @@ shadcn `Button` using `@base-ui/react` `ButtonPrimitive` + CVA variants.
 Variants: `default`, `outline`, `secondary`, `ghost`, `destructive`, `link`
 Sizes: `default`, `xs`, `sm`, `lg`, `icon`, `icon-xs`, `icon-sm`, `icon-lg`
 
-> Not widely used — most buttons are raw `<button>` elements with custom CSS classes.
-
 ---
 
 ## 11. Lib Layer
@@ -533,7 +672,7 @@ Sizes: `default`, `xs`, `sm`, `lg`, `icon`, `icon-xs`, `icon-sm`, `icon-lg`
 ### `lib/db/supabase.ts`
 Supabase Admin Client.
 - Uses `NEXT_PUBLIC_SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY`.
-- Session persistence is disabled since this is a stateless server environment.
+- Session persistence is disabled (stateless server environment).
 - Exports: `getSupabaseAdmin()`
 
 ---
@@ -576,15 +715,6 @@ Tables: `"quizzes"`, `"quiz_submissions"`
 | `validateQuizDocumentInput(input)` | Full input validation → `{ ok, quiz }` or `{ ok, message }` |
 | `validateQuizAnswers(quiz, answers)` | Server-side grading (strips invalid answers, counts correct) |
 
-**Validation rules (`validateQuizDocumentInput`):**
-- `name` required
-- `config` object required
-- `questions` array with ≥1 item
-- Each question: `prompt` required, ≥2 options, `answer` must match an option ID
-- `durationSeconds`: positive finite number
-- `startsAt`: parseable date string
-- Generates question IDs from prompt slug if not provided
-
 ---
 
 ### `lib/quiz/data.ts`
@@ -595,7 +725,7 @@ Thin convenience layer over `db.ts`:
 | `getQuizPayload()` | Active quiz as client-safe `QuizPayload` |
 | `getQuizPayloadById(id)` | Any quiz as `QuizPayload` |
 | `validateQuizSubmission()` | Delegates to `validateQuizAnswers` |
-| `findQuizSubmission(userId, quizId)` | Checks submissions collection |
+| `findQuizSubmission(userId, quizId)` | Checks submissions table |
 
 ---
 
@@ -603,39 +733,22 @@ Thin convenience layer over `db.ts`:
 
 ### Fonts
 
-Two custom `.ttf` font files live in `public/fonts/` and are declared via `@font-face` at the very top of `globals.css` (before all `@import` statements):
+Three custom `@font-face` declarations at the top of `globals.css`:
 
-| Family name | File | Weight | Use |
-|---|---|---|---|
-| `BatmanForever` | `batmfa__.ttf` | 400 | Primary body/heading font — replaces Inter globally |
-| `BatmanForeverOutline` | `batmfo__.ttf` | 400 | Outline variant — available via `.font-outline` utility class |
-
-```css
-@font-face {
-  font-family: "BatmanForever";
-  src: url("/fonts/batmfa__.ttf") format("truetype");
-  font-weight: 400;
-  font-style: normal;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: "BatmanForeverOutline";
-  src: url("/fonts/batmfo__.ttf") format("truetype");
-  font-weight: 400;
-  font-style: normal;
-  font-display: swap;
-}
-```
+| Family name | File | Use |
+|---|---|---|
+| `BatmanForever` | `batmfa__.ttf` | Primary body/heading font |
+| `SarkTitle` | `batmfa__.ttf` | Alias used by PixelBlast text overlay |
+| `BatmanForeverOutline` | `batmfo__.ttf` | Outline variant for decorative text |
 
 ### Design Language
 - **Dark mode only.** Near-black backgrounds (`#050505` base).
-- **Primary accent:** SARK Red (`#e11d2e`)
+- **Primary accent:** SARK Red (`#f84242` in Tailwind classes, `#e11d2e` in CSS variables)
 - **Body text:** `#f4f1f1` (warm off-white)
 - **Muted text:** `#a3a3a3`
-- **Fonts:** Inter (body) + IBM Plex Mono (metadata labels, numbers)
-- **Grid background texture:** subtle white lines at 56px intervals on the quiz page
-- **Body:** subtle red radial gradient at top-left corner
+- **Glassmorphism:** backdrop blur on nav and overlays
+- **Grid background texture:** subtle white lines at 56px intervals on quiz page
+- **Glow effects:** red blur orbs behind headings and cards
 
 ### CSS Variable Tokens
 
@@ -652,138 +765,18 @@ Two custom `.ttf` font files live in `public/fonts/` and are declared via `@font
 --ring: rgba(225,29,46,0.55)
 --radius: 0.625rem
 
-/* Font CSS variables (@theme inline in globals.css) */
+/* Font CSS variables (@theme inline) */
 --font-sans: "BatmanForever", "Inter", "Segoe UI", Arial, sans-serif
 --font-mono: "IBM Plex Mono", "Cascadia Code", Consolas, monospace
 --font-heading: "BatmanForever", "Inter", "Segoe UI", Arial, sans-serif
 --font-outline: "BatmanForeverOutline", "Inter", "Segoe UI", Arial, sans-serif
 ```
 
-### Utility Classes
-```css
-.bg-sark-black   /* background: #050505 */
-.text-sark-ink   /* color: #f4f1f1 */
-```
+### Next.js Config (`next.config.ts`)
 
-### BEM Component Class Reference
-
-#### Quiz Experience
-
-| Class | Purpose |
-|---|---|
-| `.quiz-app` | Full page wrapper. Grid background + red radial gradient. |
-| `.quiz-chrome` | Sticky header bar (backdrop blur). |
-| `.quiz-logo` | Logo image sizing (154px wide). |
-| `.quiz-start` | Pre-start screen section. |
-| `.quiz-start__intro` | Title + description area. |
-| `.quiz-start__details` | Question count + duration meta pills. |
-| `.quiz-start__meta` | Individual meta pill. |
-| `.quiz-rules` | Rule list paragraphs. |
-| `.quiz-room` | Active question section. Uses `--question-index` CSS var. |
-| `.quiz-question-stack` | Question + options + controls wrapper. |
-| `.quiz-question` | Article card for the question. |
-| `.quiz-question__number` | Question number badge. |
-| `.quiz-question__body` | Prompt + description. |
-| `.quiz-options` | Option buttons grid. |
-| `.quiz-option` | Single option button. |
-| `.quiz-option.is-selected` | Highlighted selected state (red accent). |
-| `.quiz-controls` | Back + Next/Finish button row. |
-| `.quiz-submit-error` | Error message below controls. |
-| `.quiz-warning` | Unanswered warning modal overlay. |
-| `.quiz-warning__panel` | Modal content box. |
-| `.quiz-warning__actions` | Modal action buttons. |
-| `.quiz-timer` | Fixed countdown timer widget (top-right). |
-| `.quiz-timer.is-urgent` | Red tint when ≤60s remaining. Uses `--timer-progress` CSS var. |
-| `.quiz-vertical-progress` | Fixed side progress rail (right). |
-| `.quiz-vertical-progress__line` | Vertical connecting line. |
-| `.quiz-diamond` | Diamond-shaped question marker. |
-| `.quiz-diamond.is-reached` | Line has reached this question. |
-| `.quiz-diamond.is-active` | Current question (scaled up, glowing). |
-| `.quiz-diamond.is-answered` | Answered (red fill). |
-| `.quiz-loading` | Loading / error state section. |
-| `.quiz-attempt-toast` | Already-submitted overlay (role=alert). |
-| `.quiz-attempt-toast__panel` | Content panel within overlay. |
-
-#### Quiz Auth
-
-| Class | Purpose |
-|---|---|
-| `.quiz-auth-page` | Full page wrapper. |
-| `.quiz-auth-header` | Logo header. |
-| `.quiz-auth-shell` | Two-column layout: hero + form. |
-| `.quiz-auth-hero` | Left marketing copy. |
-| `.quiz-auth-hero__badge` | "Technical screening" badge pill. |
-| `.quiz-auth-card` | Form card (glassmorphism-ish). |
-| `.quiz-auth-switch` | Login / Signup toggle tab bar. |
-| `.quiz-auth-card__title` | Icon + mode heading. |
-| `.quiz-auth-fields` | Field stack. |
-| `.quiz-auth-input` | Icon + input wrapper. |
-| `.quiz-auth-error` | Error message. |
-| `.quiz-auth-submit` | Submit button. |
-
-#### Quiz Result
-
-| Class | Purpose |
-|---|---|
-| `.quiz-result-page` | Full page wrapper. |
-| `.quiz-result` | Content section. |
-| `.quiz-result__mark` | CheckCircle icon container. |
-| `.quiz-result__copy` | Heading + description. |
-| `.quiz-result__invite` | Optional invite card (WhatsApp QR etc.). |
-
-#### Shared Buttons
-
-| Class | Purpose |
-|---|---|
-| `.quiz-primary-button` | Red filled button (primary CTA). |
-| `.quiz-secondary-button` | Outlined / ghost secondary button. |
-| `.quiz-spin` | Spinning loader icon class. |
-
-#### Admin Dashboard
-
-| Class | Purpose |
-|---|---|
-| `.admin-dashboard` | Sidebar + content grid. |
-| `.admin-sidebar` | Left navigation panel. |
-| `.admin-content` | Main content area. |
-| `.admin-content__header` | Page title header row. |
-| `.admin-metrics` | 3 stat cards row (count, top score, fastest). |
-| `.admin-table-wrap` | Leaderboard table container. |
-| `.admin-table-title` | Table heading + filter row. |
-| `.admin-leaderboard-filter` | Quiz select + View button form. |
-| `.admin-leaderboard` | Ranked submissions table. |
-| `.admin-quiz-panel` | Quiz CRUD section. |
-| `.admin-section-heading` | Section label + New Quiz button row. |
-| `.admin-quiz-grid` | List + editor two-column layout. |
-| `.admin-quiz-list` | Sidebar list of existing quizzes. |
-| `.admin-quiz-row-actions` | Active toggle + delete per-row. |
-| `.admin-active-toggle` | Active/Inactive status toggle button. |
-| `.admin-active-toggle.is-active` | Green active state. |
-| `.admin-delete-button` | Small icon delete button. |
-| `.admin-quiz-editor` | Main form editor area. |
-| `.admin-editor-title` | Quiz name + active checkbox row. |
-| `.admin-form-grid` | 2-column field grid. |
-| `.admin-field` | Label + input field. |
-| `.admin-field--wide` | Full-width field (textarea). |
-| `.admin-options-grid` | 4-column options grid. |
-| `.admin-question-header` | Questions section heading + Add button. |
-| `.admin-question-card` | Fieldset for one question. |
-| `.admin-editor-actions` | Save button + message row. |
-| `.admin-upload-field` | Image upload area. |
-| `.admin-file-upload` | File input label (styled as button). |
-| `.admin-image-preview` | Preview + remove button. |
-| `.admin-inline-toggle` | Checkbox + label inline. |
-| `.admin-icon-button` | Icon-only button (e.g. remove question). |
-| `.admin-empty-state` | Empty list message. |
-| `.admin-danger-action` | Red destructive action button. |
-
-#### Admin Login
-
-| Class | Purpose |
-|---|---|
-| `.admin-login-page` | Full page wrapper. |
-| `.admin-login-panel` | Centred card. |
-| `.admin-login-form` | Form within the panel. |
+Allows remote images from:
+- `images.unsplash.com`
+- `assets.aceternity.com`
 
 ---
 
@@ -805,24 +798,18 @@ startsAt: "Open now" → treated as already started by hasQuizStarted()
 
 All correct answers: option `"a"`
 
-**ResultInvite:**
-```json
-{
-  "title": "Join the SARK quiz circle",
-  "description": "Scan the WhatsApp QR to join the group for updates, discussions, and next steps.",
-  "image": false
-}
-```
-
 ---
 
 ## 14. Key Patterns & Conventions
 
 ### `"server-only"` imports
-All `lib/` files that touch the database or session cookies import `"server-only"` at the top. This prevents accidental client-side bundling and will throw a build error if violated.
+All `lib/` files that touch the database or session cookies import `"server-only"` at the top. This prevents accidental client-side bundling.
 
 ### Server-Only DB Access
-Database access is restricted to the server (via service role key in `getSupabaseAdmin()`), ensuring no row level security (RLS) is needed for basic operations. Client components never talk to Supabase directly, but always go through Next.js API routes.
+Database access is restricted to the server via service role key in `getSupabaseAdmin()`. Client components never talk to Supabase directly — always through API routes.
+
+### `// @ts-nocheck` Pattern
+Files with heavy untyped DOM manipulation (e.g. `Shuffle.tsx` with GSAP's `SplitText`) use `// @ts-nocheck` as the **first line** (before `"use client"`) to suppress internal type errors, while still exporting a properly typed interface for call sites.
 
 ### Active Quiz Invariant
 At most **one** quiz should be `is_active: true` at any time. `setActiveQuiz(id, true)` runs a two-step update (deactivating others, then activating the target). This is **not atomic** — a theoretical TOCTOU race exists but is acceptable for this use case.
@@ -841,13 +828,14 @@ The unique compound index on the submissions table is the authoritative guard. T
 1. Strips the `answer` field from questions
 2. Sets `resultInvite.image = false`
 
-The real image URL is only used server-side (the `/quiz/result` page fetches it directly from DB).
-
 ### Seeding Pattern
-`ensureDefaultQuiz()` uses a **module-level promise** so it only runs once per process lifetime. It checks `count` from `quizzes` — if any quizzes exist, skip. This means the seed quiz is only inserted into a completely empty quizzes table.
+`ensureDefaultQuiz()` uses a **module-level promise** so it only runs once per process lifetime. Checks `count` from `quizzes` — if any quizzes exist, skip.
 
 ### Admin CRUD Sync Pattern
-After any mutation (save / toggle / delete), the `QuizPanel` always fetches the full quiz list from the server (`GET /api/admin/quizzes`) and syncs the local state. The UI always reflects server state after mutations.
+After any mutation (save / toggle / delete), the `QuizPanel` always fetches the full quiz list from the server and syncs local state.
+
+### Framer Motion Type Compatibility
+When extending `React.HTMLAttributes<HTMLDivElement>` for components that spread `...props` onto `motion.div`, use `Omit<>` to remove conflicting event handlers (`onDrag`, `onDragStart`, `onDragEnd`, `onAnimationStart`). Use `as const` on easing string literals to satisfy Framer Motion's `Easing` type.
 
 ---
 
@@ -855,13 +843,16 @@ After any mutation (save / toggle / delete), the `QuizPanel` always fetches the 
 
 | Issue | Details |
 |---|---|
-| **Hardcoded admin credentials** | `sarktech / nrhs123` in `app/api/admin/auth/login/route.ts` lines 5–6. Move to env vars before any public deployment. |
+| **Hardcoded admin credentials** | `sarktech / nrhs123` in `app/api/admin/auth/login/route.ts`. Move to env vars before any public deployment. |
 | **AUTH_SECRET fallback includes NEXT_PUBLIC_SUPABASE_URL** | Rotating the Supabase URL also invalidates all active sessions. |
-| **No landing page** | `app/page.tsx` returns `null`. No redirect exists at `"/"`. |
 | **UI copy bug** | `ClearLeaderboardButton` label says "Delete all users" but only deletes submissions. |
-| **Base64 image storage** | `resultInvite.image` is stored as a base64 data URI in PostgreSQL when uploaded. Bloats documents for large images. No CDN/upload service integrated. |
-| **No rate limiting** | Auth endpoints (`/api/quiz/auth/*`, `/api/admin/auth/*`) have no rate limiting or brute-force protection. |
-| **No middleware.ts** | Route protection is handled per-page/per-route by calling `getAdminSession()` / `getQuizSession()` manually. No centralized middleware. |
-| **framer-motion unused** | Installed as a dependency but not yet used anywhere in the codebase. |
-| **`temp/` directory** | Exists in project root but is empty (scratch space). |
+| **Base64 image storage** | `resultInvite.image` is stored as a base64 data URI in PostgreSQL when uploaded. Bloats documents for large images. |
+| **No rate limiting** | Auth endpoints have no rate limiting or brute-force protection. |
+| **No middleware.ts** | Route protection is handled per-page/per-route manually. No centralized middleware. |
 | **`setActiveQuiz` not atomic** | Deactivating others + activating the target is two separate DB operations. |
+| **`temp/` directory** | Contains timeline data — should be moved to `data/` for consistency. |
+| **`lib/auth/mongodb.ts`** | Legacy 1-line file (unused). Safe to delete. |
+| **eslint peer dependency warnings** | `eslint@10` conflicts with `eslint-plugin-import`/`eslint-plugin-jsx-a11y`/`eslint-plugin-react` which only support up to eslint 9. Builds succeed but npm warns. |
+| **Missing pages** | `/about`, `/alumni`, `/achievements` routes are in the navbar but have no corresponding `app/` directories — will 404. |
+| **Hero image path has spaces** | `page.tsx` line 44 references `"/  Gemini_Generated_Image_b3t71fb3t71fb3t.png"` with leading spaces — may fail to load. |
+| **Demo components unused** | `wobble-card-demo.tsx` and `timeline-demo.tsx` are reference implementations not rendered anywhere. |

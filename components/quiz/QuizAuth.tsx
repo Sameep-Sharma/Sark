@@ -4,6 +4,7 @@ import { useState, type FormEvent } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { ArrowRight, LockKeyhole, Mail, ShieldCheck } from "lucide-react";
+import { SmoothInput } from "@/components/ui/smooth-input";
 
 type AuthMode = "login" | "signup";
 
@@ -113,7 +114,7 @@ export function QuizAuth() {
               signupFields.map((field) => (
                 <label key={field.name}>
                   <span>{field.label}</span>
-                  <input
+                  <SmoothInput
                     name={field.name}
                     type={field.type}
                     autoComplete={field.autoComplete}
@@ -128,14 +129,14 @@ export function QuizAuth() {
                   <span>Email</span>
                   <div className="quiz-auth-input">
                     <Mail />
-                    <input name="email" type="email" autoComplete="email" required />
+                    <SmoothInput name="email" type="email" autoComplete="email" required />
                   </div>
                 </label>
                 <label>
                   <span>Password</span>
                   <div className="quiz-auth-input">
                     <LockKeyhole />
-                    <input name="password" type="password" autoComplete="current-password" required />
+                    <SmoothInput name="password" type="password" autoComplete="current-password" required />
                   </div>
                 </label>
               </>

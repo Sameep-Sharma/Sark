@@ -3,6 +3,7 @@
 import { useMemo, useState, type ChangeEvent, type FormEvent } from "react";
 import Image from "next/image";
 import { CheckCircle2, Circle, FilePenLine, ImageUp, Plus, Save, Trash2 } from "lucide-react";
+import { SmoothInput } from "@/components/ui/smooth-input";
 
 import type { QuizQuestionWithAnswer, ResultInvite } from "@/lib/quiz/types";
 
@@ -203,9 +204,9 @@ export function QuizPanel({ initialQuizzes }: QuizPanelProps) {
       questions: current.questions.map((question, index) =>
         index === questionIndex
           ? {
-              ...question,
-              options: question.options.map((option, itemIndex) => (itemIndex === optionIndex ? { ...option, label } : option)),
-            }
+            ...question,
+            options: question.options.map((option, itemIndex) => (itemIndex === optionIndex ? { ...option, label } : option)),
+          }
           : question,
       ),
     }));
@@ -501,7 +502,7 @@ function Field({
   return (
     <label className="admin-field">
       <span>{label}</span>
-      <input type={type} value={value} min={type === "number" ? 1 : undefined} onChange={(event) => onChange(event.target.value)} />
+      <SmoothInput type={type} value={value} min={type === "number" ? 1 : undefined} onChange={(event) => onChange(event.target.value)} />
     </label>
   );
 }

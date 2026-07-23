@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Anton&family=Arimo:ital,wght@0,400..700;1,400..700&family=Cascadia+Code:ital,wght@0,200..700;1,200..700&family=Honk:MORF@15&family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=Outfit:wght@100..900&family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap');
+
 /* ── Custom fonts ─────────────────────────────────────────── */
 @font-face {
   font-family: "BatmanForever";
@@ -25,6 +27,14 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
+
+/* Force clean Google Font for input fields instead of Batman font */
+input,
+textarea,
+select,
+.smooth-input-field {
+  font-family: 'Inter', 'Poppins', 'Arimo', 'Outfit', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
+}
 
 @custom-variant dark (&:is(.dark *));
 
@@ -146,6 +156,7 @@
   * {
     @apply border-border outline-ring/50;
   }
+
   body {
     @apply bg-background text-foreground;
     min-height: 100vh;
@@ -154,6 +165,7 @@
       linear-gradient(180deg, #050505 0%, #090909 100%);
     letter-spacing: 0;
   }
+
   html {
     @apply font-sans;
     scrollbar-gutter: stable;
@@ -328,7 +340,7 @@
   transition: transform 400ms linear;
 }
 
-.quiz-timer > span {
+.quiz-timer>span {
   position: relative;
   display: grid;
   width: 42px;
@@ -337,7 +349,7 @@
   color: #ff6675;
 }
 
-.quiz-timer > span::before {
+.quiz-timer>span::before {
   content: "";
   position: absolute;
   inset: 0;
@@ -431,7 +443,7 @@
   line-height: 0.92;
 }
 
-.quiz-start__intro > span {
+.quiz-start__intro>span {
   max-width: 720px;
   color: #cfcfcf;
   font-size: clamp(1rem, 1.5vw, 1.18rem);
@@ -723,7 +735,7 @@
   box-shadow: 0 28px 120px rgba(0, 0, 0, 0.55);
 }
 
-.quiz-warning__panel > span {
+.quiz-warning__panel>span {
   display: grid;
   width: 52px;
   height: 52px;
@@ -879,7 +891,7 @@ button {
   line-height: 0.98;
 }
 
-.quiz-result__copy > span {
+.quiz-result__copy>span {
   max-width: 620px;
   color: #cfcfcf;
   font-size: clamp(0.95rem, 1.25vw, 1.05rem);
@@ -969,7 +981,7 @@ button {
   text-align: center;
 }
 
-.quiz-attempt-toast__panel > span {
+.quiz-attempt-toast__panel>span {
   display: grid;
   width: 68px;
   height: 68px;
@@ -1197,7 +1209,7 @@ button {
   align-items: center;
 }
 
-.quiz-auth-card__title > svg {
+.quiz-auth-card__title>svg {
   width: 42px;
   height: 42px;
   padding: 10px;
@@ -1230,7 +1242,7 @@ button {
   gap: 8px;
 }
 
-.quiz-auth-fields label > span {
+.quiz-auth-fields label>span {
   color: #a7a7a7;
   font-family: "IBM Plex Mono", "Cascadia Code", Consolas, monospace;
   font-size: 0.7rem;
@@ -1321,7 +1333,7 @@ button {
 .admin-metrics span,
 .admin-table-title h2,
 .admin-leaderboard th,
-.admin-login-form label > span {
+.admin-login-form label>span {
   color: #a7a7a7;
   font-family: "IBM Plex Mono", "Cascadia Code", Consolas, monospace;
   font-size: 0.72rem;
@@ -1335,7 +1347,7 @@ button {
   line-height: 0.96;
 }
 
-.admin-login-panel div > span,
+.admin-login-panel div>span,
 .admin-content__header span {
   color: #cfcfcf;
   line-height: 1.65;
@@ -1458,7 +1470,7 @@ button {
   line-height: 1;
 }
 
-.admin-content__header > svg {
+.admin-content__header>svg {
   width: 42px;
   height: 42px;
   color: #ff6675;
@@ -1549,7 +1561,7 @@ button {
   background: rgba(225, 29, 46, 0.1);
 }
 
-.admin-quiz-list article > button:first-child,
+.admin-quiz-list article>button:first-child,
 .admin-active-toggle,
 .admin-inline-toggle,
 .admin-quiz-row-actions,
@@ -1561,7 +1573,7 @@ button {
   gap: 10px;
 }
 
-.admin-quiz-list article > button:first-child {
+.admin-quiz-list article>button:first-child {
   width: 100%;
   border: 0;
   background: transparent;
@@ -1849,6 +1861,7 @@ button {
   0% {
     transform: translateX(-100%);
   }
+
   100% {
     transform: translateX(260%);
   }
@@ -1859,6 +1872,7 @@ button {
     opacity: 0;
     transform: translateY(calc((var(--question-index, 0) + 1) * 9px));
   }
+
   100% {
     opacity: 1;
     transform: translateY(0);
@@ -2082,18 +2096,35 @@ button {
 
 /* ── Hero Section Animations ──────────────────────────────────── */
 @keyframes float {
-  0% { transform: translateY(0px); }
-  50% { transform: translateY(-15px); }
-  100% { transform: translateY(0px); }
+  0% {
+    transform: translateY(0px);
+  }
+
+  50% {
+    transform: translateY(-15px);
+  }
+
+  100% {
+    transform: translateY(0px);
+  }
 }
+
 .animate-float {
   animation: float 6s ease-in-out infinite;
 }
 
 @keyframes blink {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0; }
+
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0;
+  }
 }
+
 .animate-blink {
   animation: blink 1s step-end infinite;
 }

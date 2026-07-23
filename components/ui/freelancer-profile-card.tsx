@@ -1,10 +1,9 @@
 import * as React from "react";
 import { motion } from "framer-motion";
-import { Star, Bookmark } from "lucide-react";
+import { Globe } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Button } from "@/components/ui/button";
 
 /**
  * Props for the FreelancerProfileCard component.
@@ -18,18 +17,14 @@ interface FreelancerProfileCardProps extends Omit<React.HTMLAttributes<HTMLDivEl
   avatarSrc: string;
   /** URL for the card's banner image. */
   bannerSrc: string;
-  /** The user's rating (e.g., 4.0). */
-  rating?: number;
-  /** A string describing the project duration (e.g., "8 Days"). */
-  duration?: string;
-  /** A string for the user's rate (e.g., "$40/hr"). */
-  rate?: string;
-  /** A React node (e.g., array of icons) for the tools section. */
-  tools: React.ReactNode;
-  /** Optional click handler for the "Get in touch" button. */
-  onGetInTouch?: () => void;
-  /** Optional click handler for the bookmark icon. */
-  onBookmark?: () => void;
+  /** Optional GitHub URL */
+  github_url?: string;
+  /** Optional X (Twitter) URL */
+  x_url?: string;
+  /** Optional LinkedIn URL */
+  linkedin_url?: string;
+  /** Optional Portfolio/Website URL */
+  portfolio_url?: string;
   /** Optional additional class names. */
   className?: string;
 }
@@ -77,12 +72,10 @@ export const FreelancerProfileCard = React.forwardRef<
       title,
       avatarSrc,
       bannerSrc,
-      rating,
-      duration,
-      rate,
-      tools,
-      onGetInTouch,
-      onBookmark,
+      github_url,
+      x_url,
+      linkedin_url,
+      portfolio_url,
       ...props
     },
     ref
@@ -106,29 +99,18 @@ export const FreelancerProfileCard = React.forwardRef<
         {...props}
       >
         {/* Banner Image */}
-        <div className="h-32 w-full">
+        <div className="h-48 w-full">
           <img
             src={bannerSrc}
             alt={`${name}'s banner`}
             className="h-full w-full object-cover opacity-80"
           />
-          <div className="absolute top-0 left-0 w-full h-32 bg-gradient-to-t from-[#0a0a0a] to-transparent pointer-events-none" />
+          <div className="absolute top-0 left-0 w-full h-48 bg-gradient-to-t from-[#0a0a0a] to-transparent pointer-events-none" />
         </div>
 
-        {/* Bookmark Button */}
-        <Button
-          variant="secondary"
-          size="icon"
-          className="absolute right-4 top-4 h-9 w-9 rounded-lg bg-black/50 backdrop-blur-sm text-white/80 hover:bg-black/70 border border-white/10"
-          onClick={onBookmark}
-          aria-label="Bookmark profile"
-        >
-          <Bookmark className="h-4 w-4" />
-        </Button>
-
         {/* Avatar (overlaps banner) */}
-        <div className="absolute left-1/2 top-32 -translate-x-1/2 -translate-y-1/2">
-          <Avatar className="h-20 w-20 border-4 border-[#0a0a0a]">
+        <div className="absolute left-1/2 top-40 -translate-x-1/2 -translate-y-1/2">
+          <Avatar className="h-60 w-60 border-4 border-[#0a0a0a]">
             <AvatarImage src={avatarSrc} alt={name} className="object-cover" />
             <AvatarFallback className="bg-[#f84242] text-white">{avatarName}</AvatarFallback>
           </Avatar>
@@ -136,45 +118,42 @@ export const FreelancerProfileCard = React.forwardRef<
 
         {/* Content Area */}
         <motion.div
-          className="px-6 pb-6 pt-12" // pt-12 to clear avatar
+          className="px-6 pb-6 pt-28 text-center" // pt-28 to clear larger avatar
           variants={contentVariants}
         >
-          {/* Name, Title, and Tools */}
+          {/* Name and Title */}
           <motion.div
-            className="mb-6 flex items-start justify-between"
+            className="mb-6 flex flex-col items-center"
             variants={itemVariants}
           >
-            <div>
-              <h2 className="text-xl font-semibold text-white">
-                {name}
-              </h2>
-              <p className="text-sm text-neutral-400">{title}</p>
-            </div>
-            <div className="flex flex-col items-end gap-1.5">
-              <div className="flex gap-1.5">{tools}</div>
-              <span className="text-xs text-neutral-500">Tools</span>
-            </div>
+            <h2 className="text-xl font-semibold text-white">
+              {name}
+            </h2>
+            <p className="text-sm text-neutral-400">{title}</p>
           </motion.div>
 
-          {/* Stats - Optional rendering based on presence */}
-          {(rating !== undefined || duration || rate) && (
-            <motion.div
-              className="my-6 flex items-center justify-around rounded-lg border border-white/10 bg-white/5 p-4"
-              variants={itemVariants}
-            >
-              {rating !== undefined && <StatItem icon={Star} value={rating.toFixed(1)} label="rating" />}
-              {rating !== undefined && (duration || rate) && <Divider />}
-              {duration && <StatItem value={duration} label="Experience" />}
-              {duration && rate && <Divider />}
-              {rate && <StatItem value={rate} label="Projects" />}
-            </motion.div>
-          )}
-
-          {/* Action Button */}
-          <motion.div variants={itemVariants} className="mt-4">
-            <Button className="w-full bg-[#f84242] text-white hover:bg-[#d63838]" size="lg" onClick={onGetInTouch}>
-              View Profile
-            </Button>
+          {/* Social Links */}
+          <motion.div variants={itemVariants} className="mt-6 flex justify-center gap-4">
+            {github_url && (
+              <a href={github_url} target="_blank" rel="noopener noreferrer" className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#f84242] text-white hover:bg-[#d63838] transition-colors" aria-label="GitHub">
+                <GithubIcon className="h-6 w-6" />
+              </a>
+            )}
+            {x_url && (
+              <a href={x_url} target="_blank" rel="noopener noreferrer" className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#f84242] text-white hover:bg-[#d63838] transition-colors" aria-label="X (Twitter)">
+                <TwitterIcon className="h-6 w-6" />
+              </a>
+            )}
+            {linkedin_url && (
+              <a href={linkedin_url} target="_blank" rel="noopener noreferrer" className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#f84242] text-white hover:bg-[#d63838] transition-colors" aria-label="LinkedIn">
+                <LinkedinIcon className="h-6 w-6" />
+              </a>
+            )}
+            {portfolio_url && (
+              <a href={portfolio_url} target="_blank" rel="noopener noreferrer" className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#f84242] text-white hover:bg-[#d63838] transition-colors" aria-label="Portfolio">
+                <Globe className="h-6 w-6" />
+              </a>
+            )}
           </motion.div>
         </motion.div>
       </motion.div>
@@ -183,26 +162,22 @@ export const FreelancerProfileCard = React.forwardRef<
 );
 FreelancerProfileCard.displayName = "FreelancerProfileCard";
 
-// Internal StatItem component
-const StatItem = ({
-  icon: Icon,
-  value,
-  label,
-}: {
-  icon?: React.ElementType;
-  value: string | number;
-  label: string;
-}) => (
-  <div className="flex flex-1 flex-col items-center justify-center px-2 text-center">
-    <div className="flex items-center gap-1">
-      {Icon && <Icon className="h-4 w-4 text-[#f84242]" />}
-      <span className="text-base font-semibold text-white">
-        {value}
-      </span>
-    </div>
-    <span className="text-xs capitalize text-neutral-400">{label}</span>
-  </div>
+const GithubIcon = ({ className }: { className?: string }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="currentColor">
+    <path d="M12 2C6.477 2 2 6.477 2 12c0 4.42 2.865 8.166 6.839 9.489.5.092.682-.217.682-.482 0-.237-.008-.866-.013-1.7-2.782.603-3.369-1.34-3.369-1.34-.454-1.156-1.11-1.462-1.11-1.462-.908-.62.069-.608.069-.608 1.003.07 1.531 1.03 1.531 1.03.892 1.529 2.341 1.087 2.91.831.092-.646.35-1.086.636-1.336-2.22-.253-4.555-1.11-4.555-4.943 0-1.091.39-1.984 1.029-2.683-.103-.253-.446-1.27.098-2.647 0 0 .84-.269 2.75 1.025A9.578 9.578 0 0112 6.836c.85.004 1.705.114 2.504.336 1.909-1.294 2.747-1.025 2.747-1.025.546 1.379.203 2.394.1 2.647.64.699 1.028 1.592 1.028 2.683 0 3.842-2.339 4.687-4.566 4.935.359.309.678.919.678 1.852 0 1.336-.012 2.415-.012 2.743 0 .267.18.578.688.48C19.138 20.161 22 16.418 22 12c0-5.523-4.477-10-10-10z" />
+  </svg>
 );
 
-// Internal Divider component
-const Divider = () => <div className="h-10 w-px bg-white/10" />;
+const TwitterIcon = ({ className }: { className?: string }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M22 4s-.7 2.1-2 3.4c1.6 10-9.4 17.3-18 11.6 2.2.1 4.4-.6 6-2C3 15.5.5 9.6 3 5c2.2 2.6 5.6 4.1 9 4-.9-4.2 4-6.6 7-3.8 1.1 0 3-1.2 3-1.2z" />
+  </svg>
+);
+
+const LinkedinIcon = ({ className }: { className?: string }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z" />
+    <rect width="4" height="12" x="2" y="9" />
+    <circle cx="4" cy="4" r="2" />
+  </svg>
+);

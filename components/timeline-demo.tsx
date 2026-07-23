@@ -97,19 +97,19 @@ export function TimelineDemo() {
             Deployed 5 new components on Aceternity today
           </p>
           <div className="mb-8">
-            <div className="flex gap-2 items-center text-neutral-700 dark:text-neutral-300 text-xs md:text-sm">
+            <div key="item-1" className="flex gap-2 items-center text-neutral-700 dark:text-neutral-300 text-xs md:text-sm">
               ✅ Card grid component
             </div>
-            <div className="flex gap-2 items-center text-neutral-700 dark:text-neutral-300 text-xs md:text-sm">
+            <div key="item-2" className="flex gap-2 items-center text-neutral-700 dark:text-neutral-300 text-xs md:text-sm">
               ✅ Startup template Aceternity
             </div>
-            <div className="flex gap-2 items-center text-neutral-700 dark:text-neutral-300 text-xs md:text-sm">
+            <div key="item-3" className="flex gap-2 items-center text-neutral-700 dark:text-neutral-300 text-xs md:text-sm">
               ✅ Random file upload lol
             </div>
-            <div className="flex gap-2 items-center text-neutral-700 dark:text-neutral-300 text-xs md:text-sm">
+            <div key="item-4" className="flex gap-2 items-center text-neutral-700 dark:text-neutral-300 text-xs md:text-sm">
               ✅ Himesh Reshammiya Music CD
             </div>
-            <div className="flex gap-2 items-center text-neutral-700 dark:text-neutral-300 text-xs md:text-sm">
+            <div key="item-5" className="flex gap-2 items-center text-neutral-700 dark:text-neutral-300 text-xs md:text-sm">
               ✅ Salman Bhai Fan Club registrations open
             </div>
           </div>
