@@ -3,7 +3,7 @@ import { createClient } from '@supabase/supabase-js';
 
 export async function GET() {
   const supabase = createClient('https://dqphfrnylolsmhvxvlml.supabase.co', 'sb_publishable_6EK-rwPdKiBGMD4jbNNZzQ_9GPIvJT1');
-  const results = {};
+  const results: Record<string, string> = {};
 
   const { data: d1, error: e1 } = await supabase.from('team_members').select('*').limit(1);
   results.table = e1 ? e1.message : "OK";
