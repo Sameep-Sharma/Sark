@@ -11,7 +11,7 @@ export default function AlumniGrid({ grouped }: { grouped: Record<string, TeamMe
   const hasMembers = Object.keys(grouped).length > 0;
 
   return (
-    <div className="min-h-screen w-full relative z-10 pt-32 pb-24 px-4 md:px-8 bg-[#050505]">
+    <div className="min-h-screen w-full relative z-10 pt-32 pb-24 px-4 md:px-8 bg-transparent">
       {/* Header */}
       <div className="max-w-7xl mx-auto text-center mb-24 relative">
         <h1 className="text-5xl md:text-6xl lg:text-7xl font-extrabold text-white tracking-tight">

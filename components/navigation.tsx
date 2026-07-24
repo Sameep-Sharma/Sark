@@ -1,5 +1,6 @@
 "use client";
 
+import { usePathname } from "next/navigation";
 import { Home, Info, Users, GraduationCap, Trophy, Clock } from "lucide-react";
 import { NavBar } from "@/components/ui/tubelight-navbar";
 
@@ -13,5 +14,12 @@ const navItems = [
 ];
 
 export function Navigation() {
+  const pathname = usePathname();
+
+  // Hide the navigation bar on admin and quiz routes (e.g. /admin, /quiz)
+  if (pathname?.startsWith("/admin") || pathname?.startsWith("/quiz")) {
+    return null;
+  }
+
   return <NavBar items={navItems} />;
 }

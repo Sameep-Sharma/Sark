@@ -233,22 +233,22 @@ export function RayBackground({
 }: RayBackgroundProps) {
   return (
     <div className="absolute inset-0 w-full h-full overflow-hidden pointer-events-none select-none">
-      <div className="absolute inset-0 bg-[#050505]" />
+      <div className="absolute inset-0 bg-[#050505] pointer-events-none" />
       <div 
-        className="absolute left-1/2 -translate-x-1/2 w-[4000px] h-[1800px] sm:w-[6000px]"
+        className="absolute left-1/2 -translate-x-1/2 w-[4000px] h-[1800px] sm:w-[6000px] pointer-events-none"
         style={{
           background: `radial-gradient(circle at center 800px, ${glowColor} 0%, rgba(225, 29, 46, 0.32) 14%, rgba(225, 29, 46, 0.16) 18%, rgba(225, 29, 46, 0.06) 22%, rgba(5, 5, 5, 0.2) 25%)`
         }}
       />
       <div 
-        className="absolute top-[175px] left-1/2 w-[1600px] h-[1600px] sm:top-1/2 sm:w-[3043px] sm:h-[2865px]"
+        className="absolute top-[175px] left-1/2 w-[1600px] h-[1600px] sm:top-1/2 sm:w-[3043px] sm:h-[2865px] pointer-events-none"
         style={{ transform: 'translate(-50%) rotate(180deg)' }}
       >
-        <div className="absolute w-full h-full rounded-full -mt-[13px]" style={{ background: 'radial-gradient(43.89% 25.74% at 50.02% 97.24%, #120304 0%, #050505 100%)', border: '16px solid white', transform: 'rotate(180deg)', zIndex: 5 }} />
-        <div className="absolute w-full h-full rounded-full bg-[#050505] -mt-[11px]" style={{ border: `23px solid ${ringColor1}`, transform: 'rotate(180deg)', zIndex: 4 }} />
-        <div className="absolute w-full h-full rounded-full bg-[#050505] -mt-[8px]" style={{ border: `23px solid ${ringColor2}`, transform: 'rotate(180deg)', zIndex: 3 }} />
-        <div className="absolute w-full h-full rounded-full bg-[#050505] -mt-[4px]" style={{ border: `23px solid ${ringColor3}`, transform: 'rotate(180deg)', zIndex: 2 }} />
-        <div className="absolute w-full h-full rounded-full bg-[#050505]" style={{ border: `20px solid ${ringColor4}`, boxShadow: '0 -15px 30px rgba(225, 29, 46, 0.65)', transform: 'rotate(180deg)', zIndex: 1 }} />
+        <div className="absolute w-full h-full rounded-full -mt-[13px] pointer-events-none" style={{ background: 'radial-gradient(43.89% 25.74% at 50.02% 97.24%, #120304 0%, #050505 100%)', border: '16px solid white', transform: 'rotate(180deg)', zIndex: 5 }} />
+        <div className="absolute w-full h-full rounded-full bg-[#050505] -mt-[11px] pointer-events-none" style={{ border: `23px solid ${ringColor1}`, transform: 'rotate(180deg)', zIndex: 4 }} />
+        <div className="absolute w-full h-full rounded-full bg-[#050505] -mt-[8px] pointer-events-none" style={{ border: `23px solid ${ringColor2}`, transform: 'rotate(180deg)', zIndex: 3 }} />
+        <div className="absolute w-full h-full rounded-full bg-[#050505] -mt-[4px] pointer-events-none" style={{ border: `23px solid ${ringColor3}`, transform: 'rotate(180deg)', zIndex: 2 }} />
+        <div className="absolute w-full h-full rounded-full bg-[#050505] pointer-events-none" style={{ border: `20px solid ${ringColor4}`, boxShadow: '0 -15px 30px rgba(225, 29, 46, 0.65)', transform: 'rotate(180deg)', zIndex: 1 }} />
       </div>
     </div>
   )

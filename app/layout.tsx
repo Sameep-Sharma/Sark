@@ -18,7 +18,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="dark h-full antialiased">
+    <html lang="en" className="dark h-full antialiased scroll-smooth">
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
@@ -28,7 +28,7 @@ export default function RootLayout({
         />
       </head>
       <body className="min-h-full bg-black text-sark-ink">
-        <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', zIndex: 0, pointerEvents: 'none' }}>
+        <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', zIndex: 0, opacity: 0.5, pointerEvents: 'none' }}>
           <PixelBlast
             variant="square"
             pixelSize={3}
@@ -50,8 +50,6 @@ export default function RootLayout({
               rippleFromText: true
             }}
           />
-          {/* Dimming overlay so content on top is more legible */}
-          <div style={{ position: 'absolute', inset: 0, backgroundColor: 'rgba(0, 0, 0, 0.6)', pointerEvents: 'none' }} />
         </div>
         <div style={{ position: 'relative', zIndex: 1, pointerEvents: 'auto' }}>
           <header className="home-header pointer-events-none">

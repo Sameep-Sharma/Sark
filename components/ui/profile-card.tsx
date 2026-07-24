@@ -1,13 +1,45 @@
 "use client";
 
-import React from "react";
-import { Plus, Layers } from "lucide-react";
+import React, { useState } from "react";
+import { Plus, Globe, Code2 } from "lucide-react";
 
-const InstagramIcon = (props: React.SVGProps<SVGSVGElement>) => (
+const TechIcon = ({ tech }: { tech: string }) => {
+  const [error, setError] = useState(false);
+  return (
+    <div className="group/icon relative flex items-center justify-center w-10 h-10 rounded-full bg-white/5 border border-white/10 hover:bg-white/10 transition-colors">
+      {!error ? (
+        <img
+          src={`https://cdn.simpleicons.org/${getTechIconSlug(tech)}/white`}
+          alt=""
+          className="w-5 h-5 opacity-80 group-hover/icon:opacity-100 transition-opacity"
+          onError={() => setError(true)}
+        />
+      ) : (
+        <Code2 className="w-5 h-5 opacity-80 group-hover/icon:opacity-100 transition-opacity text-white" />
+      )}
+      {/* Tooltip */}
+      <div 
+        className="absolute -top-8 left-1/2 -translate-x-1/2 px-2.5 py-1 bg-black text-white text-[11px] font-semibold rounded-md opacity-0 group-hover/icon:opacity-100 transition-all pointer-events-none whitespace-nowrap z-10 border border-white/20 shadow-xl"
+        style={{ fontFamily: "'Inter', 'Poppins', sans-serif", letterSpacing: "normal" }}
+      >
+        {tech}
+      </div>
+    </div>
+  );
+};
+
+const GithubIcon = (props: React.SVGProps<SVGSVGElement>) => (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
-    <rect width="20" height="20" x="2" y="2" rx="5" ry="5" />
-    <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" />
-    <line x1="17.5" x2="17.51" y1="6.5" y2="6.5" />
+    <path d="M15 22v-4a4.8 4.8 0 0 0-1-3.24c3-.34 6-1.54 6-6.36 0-1.4-.5-2.5-1.3-3.4.1-.3.6-1.6-.1-3.4 0 0-1-.3-3.4 1.3a11.5 11.5 0 0 0-6 0c-2.4-1.6-3.4-1.3-3.4-1.3-.7 1.8-.2 3.1-.1 3.4-.8.9-1.3 2-1.3 3.4 0 4.8 3 6 6 6.36.3.3.5.9.5 1.94v4.06" />
+    <path d="M9 20c-4 1-5-2-7-2" />
+  </svg>
+);
+
+const LinkedinIcon = (props: React.SVGProps<SVGSVGElement>) => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
+    <path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z" />
+    <rect width="4" height="12" x="2" y="9" />
+    <circle cx="4" cy="4" r="2" />
   </svg>
 );
 
@@ -18,9 +50,10 @@ const TwitterIcon = (props: React.SVGProps<SVGSVGElement>) => (
 );
 
 export interface SocialLinks {
-  instagram?: string;
+  github?: string;
+  linkedin?: string;
   twitter?: string;
-  layers?: string;
+  portfolio?: string;
 }
 
 export interface ProfileCardProps {
@@ -28,10 +61,7 @@ export interface ProfileCardProps {
   avatarImage?: string;
   name?: string;
   bio?: string;
-  likes?: string;
-  posts?: string;
-  views?: string;
-  expProgress?: number;
+  techStack?: string[];
   socialLinks?: SocialLinks;
   onFollow?: () => void;
   className?: string;
@@ -40,21 +70,56 @@ export interface ProfileCardProps {
 const DEFAULT_COVER = "https://images.unsplash.com/photo-1534088568595-a066f410bcda?auto=format&fit=crop&w=800&q=80";
 const DEFAULT_AVATAR = "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=300&q=80";
 
+const getTechIconSlug = (name: string) => {
+  const normalized = name.toLowerCase().trim();
+  const map: Record<string, string> = {
+    'nuxt': 'nuxt',
+    'nuxt js': 'nuxt',
+    'nuxtjs': 'nuxt',
+    'nuxt.js': 'nuxt',
+    'next': 'nextdotjs',
+    'next js': 'nextdotjs',
+    'nextjs': 'nextdotjs',
+    'next.js': 'nextdotjs',
+    'node': 'nodedotjs',
+    'node js': 'nodedotjs',
+    'nodejs': 'nodedotjs',
+    'node.js': 'nodedotjs',
+    'vue': 'vuedotjs',
+    'vue js': 'vuedotjs',
+    'vuejs': 'vuedotjs',
+    'vue.js': 'vuedotjs',
+    'react': 'react',
+    'react js': 'react',
+    'reactjs': 'react',
+    'react.js': 'react',
+    'react native': 'react',
+    'c++': 'cplusplus',
+    'c#': 'csharp',
+    'f#': 'fsharp',
+  };
+  
+  if (map[normalized]) return map[normalized];
+  
+  return normalized
+    .replace(/\+/g, 'plus')
+    .replace(/#/g, 'sharp')
+    .replace(/\./g, 'dot')
+    .replace(/[^a-z0-9]/g, '');
+};
+
 export function ProfileCard({
   coverImage = DEFAULT_COVER,
   avatarImage = DEFAULT_AVATAR,
   name = "Bhomik Chauhan",
   bio = "Product Designer who focuses on simplicity & usability.",
-  likes = "72.9K",
-  posts = "828",
-  views = "342.9K",
-  expProgress = 75,
+  techStack = [],
   socialLinks,
   onFollow,
   className = "",
 }: ProfileCardProps) {
   return (
-    <div className={`relative w-full max-w-[380px] rounded-3xl overflow-hidden bg-[#0e0e10] border border-white/10 shadow-2xl transition-all duration-300 hover:border-white/20 ${className}`}>
+    <div className={`group relative w-full max-w-[380px] rounded-3xl overflow-hidden bg-[#0e0e10] border border-white/10 shadow-2xl transition-all duration-500 hover:border-white/20 hover:shadow-[0_0_40px_-10px_rgba(255,255,255,0.12)] hover:-translate-y-2 ${className}`}>
       {/* Cover Photo */}
       <div className="relative h-[180px] w-full overflow-hidden">
         <img
@@ -62,18 +127,12 @@ export function ProfileCard({
           alt="Cover photo"
           className="h-full w-full object-cover"
         />
-        <button
-          onClick={onFollow}
-          className="absolute top-4 right-4 inline-flex items-center gap-1.5 rounded-full bg-white px-5 py-2 text-xs font-bold text-black shadow-md transition-all duration-200 hover:scale-105 hover:bg-neutral-200 active:scale-95"
-        >
-          <span>Follow</span>
-          <Plus className="h-3.5 w-3.5 stroke-[3]" />
-        </button>
+
       </div>
 
       {/* Avatar Overlap */}
-      <div className="absolute top-[132px] left-6">
-        <div className="h-24 w-24 overflow-hidden rounded-full border-4 border-[#0e0e10] bg-[#0e0e10] shadow-xl">
+      <div className="absolute top-[75px] left-1/2 -translate-x-1/2 z-10">
+        <div className="h-[211px] w-[211px] overflow-hidden rounded-full border-[6px] border-[#0e0e10] bg-[#0e0e10] shadow-xl">
           <img
             src={avatarImage}
             alt={name}
@@ -83,41 +142,27 @@ export function ProfileCard({
       </div>
 
       {/* Card Body */}
-      <div className="px-6 pt-14 pb-6">
-        {/* exp. progress row */}
-        <div className="flex items-center gap-3">
-          <span className="text-xs font-medium text-gray-400 lowercase">exp.</span>
-          <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-white/10">
-            <div
-              className="h-full rounded-full bg-gradient-to-r from-purple-500 via-pink-500 via-orange-500 via-yellow-500 to-blue-500 transition-all duration-500"
-              style={{ width: `${Math.min(100, Math.max(0, expProgress))}%` }}
-            />
-          </div>
-        </div>
-
+      <div className="px-6 pt-[120px] pb-6 flex flex-col items-center text-center h-[340px]">
         {/* Name */}
-        <h3 className="mt-4 text-2xl font-bold text-white tracking-tight">{name}</h3>
+        <h3 className="mt-1 text-2xl font-bold text-white tracking-tight">{name}</h3>
 
         {/* Bio */}
-        <p className="mt-1 text-sm leading-relaxed text-blue-300/60 font-medium">{bio}</p>
+        <p className="mt-1.5 text-sm leading-relaxed text-blue-300/60 font-medium line-clamp-2 min-h-[40px]">{bio}</p>
 
         {/* Divider */}
-        <div className="my-4 border-b border-white/10" />
+        <div className="my-4 border-b border-white/10 w-full" />
 
-        {/* Stats Row */}
-        <div className="grid grid-cols-3 items-center text-center">
-          <div className="pr-2 border-r border-white/10">
-            <div className="text-xl font-bold text-white">{likes}</div>
-            <div className="mt-0.5 text-xs text-gray-400 font-medium">Likes</div>
-          </div>
-          <div className="px-2 border-r border-white/10">
-            <div className="text-xl font-bold text-white">{posts}</div>
-            <div className="mt-0.5 text-xs text-gray-400 font-medium">Posts</div>
-          </div>
-          <div className="pl-2">
-            <div className="text-xl font-bold text-white">{views}</div>
-            <div className="mt-0.5 text-xs text-gray-400 font-medium">Views</div>
-          </div>
+        {/* Tech Stack */}
+        <div className="flex-grow flex items-center justify-center">
+          {techStack && techStack.length > 0 ? (
+            <div className="flex flex-wrap items-center justify-center gap-2.5">
+              {techStack.map((tech) => (
+                <TechIcon key={tech} tech={tech} />
+              ))}
+            </div>
+          ) : (
+            <span className="text-xs text-neutral-500 font-medium italic" style={{ fontFamily: "'Inter', 'Poppins', sans-serif" }}>No tech stack listed</span>
+          )}
         </div>
 
         {/* Divider */}
@@ -125,33 +170,50 @@ export function ProfileCard({
 
         {/* Social Icons Row */}
         <div className="flex items-center justify-center gap-6 pt-1">
-          <a
-            href={socialLinks?.instagram || "#"}
-            target={socialLinks?.instagram ? "_blank" : undefined}
-            rel="noopener noreferrer"
-            className="text-gray-400 transition-all duration-200 hover:text-white hover:scale-110 active:scale-95"
-            aria-label="Instagram"
-          >
-            <InstagramIcon className="h-5 w-5" />
-          </a>
-          <a
-            href={socialLinks?.twitter || "#"}
-            target={socialLinks?.twitter ? "_blank" : undefined}
-            rel="noopener noreferrer"
-            className="text-gray-400 transition-all duration-200 hover:text-white hover:scale-110 active:scale-95"
-            aria-label="Twitter"
-          >
-            <TwitterIcon className="h-5 w-5" />
-          </a>
-          <a
-            href={socialLinks?.layers || "#"}
-            target={socialLinks?.layers ? "_blank" : undefined}
-            rel="noopener noreferrer"
-            className="text-gray-400 transition-all duration-200 hover:text-white hover:scale-110 active:scale-95"
-            aria-label="Layers"
-          >
-            <Layers className="h-5 w-5" />
-          </a>
+          {socialLinks?.github && (
+            <a
+              href={socialLinks.github}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-gray-400 transition-all duration-200 hover:text-white hover:scale-110 active:scale-95"
+              aria-label="GitHub"
+            >
+              <GithubIcon className="h-5 w-5" />
+            </a>
+          )}
+          {socialLinks?.linkedin && (
+            <a
+              href={socialLinks.linkedin}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-gray-400 transition-all duration-200 hover:text-white hover:scale-110 active:scale-95"
+              aria-label="LinkedIn"
+            >
+              <LinkedinIcon className="h-5 w-5" />
+            </a>
+          )}
+          {socialLinks?.twitter && (
+            <a
+              href={socialLinks.twitter}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-gray-400 transition-all duration-200 hover:text-white hover:scale-110 active:scale-95"
+              aria-label="Twitter"
+            >
+              <TwitterIcon className="h-5 w-5" />
+            </a>
+          )}
+          {socialLinks?.portfolio && (
+            <a
+              href={socialLinks.portfolio}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-gray-400 transition-all duration-200 hover:text-white hover:scale-110 active:scale-95"
+              aria-label="Portfolio"
+            >
+              <Globe className="h-5 w-5" />
+            </a>
+          )}
         </div>
       </div>
     </div>

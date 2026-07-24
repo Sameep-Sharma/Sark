@@ -47,12 +47,12 @@ export function NavBar({ items, className }: NavBarProps) {
   return (
     <div
       className={cn(
-        "fixed bottom-0 sm:top-0 left-1/2 -translate-x-1/2 z-50 mb-6 sm:pt-6",
+        "fixed bottom-0 sm:bottom-auto sm:top-0 left-1/2 -translate-x-1/2 z-50 mb-6 sm:pt-6 pointer-events-none",
         className,
       )}
     >
       <div
-        className="flex items-center gap-3 py-1 px-1 shadow-lg rounded-full bg-background/50 backdrop-blur-md border border-border"
+        className="flex items-center gap-3 py-1 px-1 shadow-lg rounded-full bg-background/50 backdrop-blur-md border border-border pointer-events-auto"
       >
         {items.map((item) => {
           const Icon = item.icon

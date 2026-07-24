@@ -19,15 +19,6 @@ export default function Home() {
 
         {/* Hero Main Content */}
         <div className="max-w-5xl w-full mx-auto flex flex-col items-center justify-center text-center relative z-10 my-auto px-4">
-          
-          {/* Top Pill Badge */}
-          <div
-            className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/10 backdrop-blur-md border border-white/15 text-white/90 text-xs md:text-sm font-medium shadow-xl mb-6"
-            style={{ filter: "url(#glass-effect)" }}
-          >
-            <Sparkles className="h-4 w-4 text-[#f84242]" />
-            <span>✨ New Design Ideas</span>
-          </div>
 
           {/* Headline */}
           <h1 className="text-4xl sm:text-6xl lg:text-7xl font-extrabold text-white leading-[1.08] tracking-tight max-w-4xl mx-auto">
@@ -53,26 +44,6 @@ export default function Home() {
           <p className="mt-6 text-neutral-300 text-base md:text-lg max-w-2xl leading-relaxed mx-auto">
             Where imagination transforms into cutting-edge technical products, campus hackathons, and creative engineering.
           </p>
-
-          {/* Buttons */}
-          <div className="flex flex-wrap items-center justify-center gap-4 pt-8">
-            <Link 
-              href="/login" 
-              className="group relative inline-flex items-center gap-2 px-8 py-3.5 text-base font-bold text-white bg-[#f84242] rounded-full overflow-hidden transition-all duration-300 hover:scale-105 hover:shadow-[0_0_30px_rgba(248,66,66,0.6)] shadow-[0_0_15px_rgba(248,66,66,0.3)]"
-            >
-              <span className="relative z-10 flex items-center gap-2">
-                Member&apos;s Login
-                <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
-              </span>
-            </Link>
-
-            <Link
-              href="#flagship-events"
-              className="px-8 py-3.5 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-white font-semibold text-sm transition-all duration-300 hover:bg-white/20 hover:border-white/40 cursor-pointer"
-            >
-              Explore Events
-            </Link>
-          </div>
 
         </div>
 
