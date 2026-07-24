@@ -51,9 +51,9 @@ export default function AlumniGrid({ grouped }: { grouped: Record<string, TeamMe
                     avatarImage={member.avatar_url || DEFAULT_AVATAR}
                     coverImage={member.banner_url || DEFAULT_COVER}
                     socialLinks={{
-                      instagram: member.portfolio_url || undefined,
+                      portfolio: member.portfolio_url || undefined,
                       twitter: member.twitter_url || undefined,
-                      layers: member.github_url || undefined,
+                      github: member.github_url || undefined,
                     }}
                   />
                 ))}
